@@ -1,6 +1,7 @@
 ;; init-tabbar.el
 
 ;; version 1.00 -- frames / tab-groups:  common, main, wanderlust, org-mode-buffers
+;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
 ;; authored, in part, by lawlist -- modifying functions at the following links:
 ;; http://www.emacswiki.org/emacs/TabBarMode
@@ -9,7 +10,7 @@
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 
 
-(require 'tabbar) ;; Tested with Version 2.0.
+(require 'tabbar)
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
