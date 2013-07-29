@@ -48,7 +48,7 @@
 ;; buffers with astericks when switching between tab groups
 ;; with either `tabbar-forward-group` or `tabbar-backward-group`.
 ;; The function `tabbar+buffer-list-function` hides buffers with
-;; astericks -- the tabbar+displayed-buffers show select buffers.
+;; astericks -- tabbar+displayed-buffers show select buffers.
 ;; For example, the buffers "*scratch*" and "*Messages* can be
 ;; made visible by specifically defining the names within the
 ;; variable `tabbar+displayed-buffers` AND also by adding the
@@ -165,8 +165,11 @@
             major-mode '(comint-mode compilation-mode)))
        "Process")
 
+      ((eq major-mode 'org-mode)
+       "org-mode")
+
       ((member (buffer-name)
-                '("*Org Agenda*" "*TODO*"))
+                '("*TODO*"))
         "org-mode")
 
 ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
