@@ -8,7 +8,7 @@
 ;; https://github.com/bamanzi/dotemacs-full/blob/master/init.d/25-tabbar.el
 ;; https://gist.github.com/Johniel/4324127
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
-
+;; http://blog.andy.glew.ca/2012_10_02_archive.html
 
 (require 'tabbar)
 (tabbar-mode t)
@@ -231,7 +231,6 @@
                   (switch-to-buffer (car group)) ))
           (tabbar-tabs tabbar-tabsets-tabset))) )
 
-;; (message "This is the cdr-group variable:  %s" cdr-group)
 ;; (message "%s" tabbar-current-tabset) ;; tab group currently selected
 ;; (message "%s" (tabbar-tabs tabbar-tabsets-tabset)) ;; all buffers by group
 ;; (message "%s" groups) ) ;; all groups
