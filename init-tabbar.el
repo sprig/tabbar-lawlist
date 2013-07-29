@@ -51,7 +51,7 @@
 (setq ido-enable-flex-matching t)
 (require 'dash) ;; needed for miscellaneous functions towards end of file
 
-(global-set-key [(f5)] 'toggle-frames-and-tab-groups)
+(global-set-key [(f5)] (function (lambda () (interactive) (toggle-frames-and-tab-groups))))
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
 (define-key global-map [?\s-w] (function (lambda () (interactive) (kill-buffer nil) (delete-frame-if-empty))))
@@ -316,7 +316,7 @@
                tabbar-mode)
     (error "Error: tabbar-mode not turned on."))
   (let* ( ;; Swaps the current buffer name with the next one along.
-         (visible-buffers (mapcar '(lambda (tab) (buffer-name (tabbar-tab-value tab)))
+         (visible-buffers (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab)))
                                   (tabbar-tabs (tabbar-current-tabset t))))
          (buffer-name (ido-completing-read "Buffer: " visible-buffers))
          window-of-buffer)
