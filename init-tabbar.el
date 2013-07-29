@@ -12,6 +12,39 @@
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
 
+;; NOTE # 1:  There are a couple of functions that are related to using frame-bufs by Al Paker
+;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
+;; These functions are NOT needed to associate tab groups with specific frames.  The source
+;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
+;; If the user wishes to install frame-bufs with a current version of Emacs, then advanced
+;; Emacs source building skills are required because frame-bufs was written around the time
+;; of Emacs 23.4, and buff-menu.el is hard-coded into the executable of Emacs during the build --
+;; it is next to impossible to modify buff-menu afterwards unless it was omitted from build:
+;; a.  Remove contents of .../lisp/buff-menu.el before building Emacs, and leave the empty file.
+;; b.  After building, install buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
+;;     and put (provide 'buff-menu) at the bottom of the file and place it in the load path.  Then,
+;;     it will need to be required when loading Emacs -- i.e., (require 'buff-menu).  Of course,
+;;     the user will lose the benefits of recent improvements to buff-menu.el unless other
+;;     modifications are made.
+
+;; NOTE #2:  If the user wishes to `tile-frames-vertically` or `tile-frames-horizontally`, then
+;; install both frame-cmds frame-fns:
+;; http://www.emacswiki.org/emacs/frame-cmds.el
+;; http://www.emacswiki.org/emacs/frame-fns.el
+
+;; NOTE #3:  Some of the miscellaneous functions (unrelated to organizing frames with tab groups),
+;; require the installation of dash:
+;;
+;; M-x package-install dash
+;;
+;; The user init file needs the following code:
+;;
+;; (require 'package)
+;; (add-to-list 'package-archives
+;;  '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+
+
 (require 'tabbar)
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
@@ -101,7 +134,7 @@
 (defun tabbar-choice ()
 (interactive)
   "Switch between tabbar modes."
-  (message "Choose:  [d]efault | plan [b] | [a]ll | [i/I]do | [f/F]rame | [g]roups " )
+  (message "Choose:  [d]efault | plan [b] | [a]ll | [i/I]do | [f/F]rame | [v/h] Tile | [g]roups " )
 
   (let*
 
@@ -145,7 +178,21 @@
   ((?F)
   (ido-frame-bufs-switch-buffer)
   (message "You have selected ido-frame-bufs-switch-buffer."))
-  
+
+  ;; requires installation of both frame-cmds frame-fns
+  ;; http://www.emacswiki.org/emacs/frame-cmds.el
+  ;; http://www.emacswiki.org/emacs/frame-fns.el
+  ((?v)
+  (tile-frames-vertically)
+  (message "You have selected tile-frames-vertically."))
+
+  ;; requires installation of both frame-cmds frame-fns
+  ;; http://www.emacswiki.org/emacs/frame-cmds.el
+  ;; http://www.emacswiki.org/emacs/frame-fns.el
+  ((?h)
+  (tile-frames-horizontally)
+  (message "You have selected tile-frames-vertically."))
+
   ((?g)
   (tabbar-buffer-show-groups-toggle-switch)
   (tabbar-display-update)
