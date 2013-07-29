@@ -1,6 +1,6 @@
 ;; init-tabbar.el
 
-;; version 1.00 -- frames / tab-groups:  common, main, wanderlust, org-mode-buffers
+;; version 1.00 -- frames / tab-groups:  common, main, wanderlust, org-mode
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
 ;; authored, in part, by lawlist -- modifying functions at the following links:
@@ -167,7 +167,7 @@
 
       ((member (buffer-name)
                 '("*Org Agenda*" "*TODO*"))
-        "org-mode-buffers")
+        "org-mode")
 
 ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
 ;;       ((string-equal "*" (substring (buffer-name) 0 1))
@@ -250,7 +250,7 @@
 
 (defun example-using-goto-tab-group ()
 (interactive)
-(goto-tab-group "org-mode-buffers"))
+(goto-tab-group "org-mode"))
 
 
 (defun ido-jump-to-tab ()
@@ -355,7 +355,7 @@ Return a list of one element based on major mode."
           (if (equal (frame-parameter frame 'name) frame-to)
             (throw 'break 
               (progn
-                (select-frame-set-input-focus frame)
+                (select-frame-set-input-focus frame)
                 (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)
               )
             )
@@ -399,7 +399,7 @@ Return a list of one element based on major mode."
       (and
         (not (equal "main" (frame-parameter nil 'name)))
         (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode-buffers" (frame-parameter nil 'name)))
+        (not (equal "org-mode" (frame-parameter nil 'name)))
         (not (equal "wanderlust" (frame-parameter nil 'name)))
       )
       ;; then
@@ -431,7 +431,7 @@ Return a list of one element based on major mode."
       (and
         (not (equal "main" (frame-parameter nil 'name)))
         (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode-buffers" (frame-parameter nil 'name)))
+        (not (equal "org-mode" (frame-parameter nil 'name)))
         (not (equal "wanderlust" (frame-parameter nil 'name)))
       )
       ;; then
@@ -448,34 +448,34 @@ Return a list of one element based on major mode."
 )
 
 
-(defun frame-exists-org-mode-buffers ()
+(defun frame-exists-org-mode ()
 (interactive)
-  (if (frame-exists "org-mode-buffers")
+  (if (frame-exists "org-mode")
     ;; then
     (progn
-      (message "Congratulations -- frame \"org-mode-buffers\" exists!")
-      (goto-tab-group "org-mode-buffers")
+      (message "Congratulations -- frame \"org-mode\" exists!")
+      (goto-tab-group "org-mode")
     )
     ;; else
-    (message "Sorry -- frame \"org-mode-buffers\" does not exist :\(" )
+    (message "Sorry -- frame \"org-mode\" does not exist :\(" )
     ;; take control of an existing frame not yet specially named.
     (if
       (and
         (not (equal "main" (frame-parameter nil 'name)))
         (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode-buffers" (frame-parameter nil 'name)))
+        (not (equal "org-mode" (frame-parameter nil 'name)))
         (not (equal "wanderlust" (frame-parameter nil 'name)))
       )
       ;; then
       (progn
-        (set-frame-name "org-mode-buffers")
+        (set-frame-name "org-mode")
         (toggle-frame-maximized)
       )
       ;; else
         (new-frame)
-        (set-frame-name "org-mode-buffers")
+        (set-frame-name "org-mode")
         (toggle-frame-maximized) )
-    (goto-tab-group "org-mode-buffers")
+    (goto-tab-group "org-mode")
   )
 )
 
@@ -494,7 +494,7 @@ Return a list of one element based on major mode."
       (and
         (not (equal "main" (frame-parameter nil 'name)))
         (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode-buffers" (frame-parameter nil 'name)))
+        (not (equal "org-mode" (frame-parameter nil 'name)))
         (not (equal "wanderlust" (frame-parameter nil 'name)))
       )
       ;; then
@@ -517,8 +517,8 @@ Return a list of one element based on major mode."
       (frame-exists-main))
   (if (equal (format "%s" tabbar-current-tabset) "common")
       (frame-exists-common))
-  (if (equal (format "%s" tabbar-current-tabset) "org-mode-buffers")
-      (frame-exists-org-mode-buffers))
+  (if (equal (format "%s" tabbar-current-tabset) "org-mode")
+      (frame-exists-org-mode))
   (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
       (frame-exists-wanderlust)) )
 
@@ -530,8 +530,8 @@ Return a list of one element based on major mode."
     (goto-tab-group "main"))
   (if (equal "common" (frame-parameter nil 'name))
     (goto-tab-group "common"))
-  (if (equal "org-mode-buffers" (frame-parameter nil 'name))
-    (goto-tab-group "org-mode-buffers"))
+  (if (equal "org-mode" (frame-parameter nil 'name))
+    (goto-tab-group "org-mode"))
   (if (equal "wanderlust" (frame-parameter nil 'name))
     (goto-tab-group "wanderlust"))
  )
@@ -544,8 +544,8 @@ Return a list of one element based on major mode."
     (goto-tab-group "main"))
   (if (equal "common" (frame-parameter nil 'name))
     (goto-tab-group "common"))
-  (if (equal "org-mode-buffers" (frame-parameter nil 'name))
-    (goto-tab-group "org-mode-buffers"))
+  (if (equal "org-mode" (frame-parameter nil 'name))
+    (goto-tab-group "org-mode"))
   (if (equal "wanderlust" (frame-parameter nil 'name))
     (goto-tab-group "wanderlust"))
  )
