@@ -57,7 +57,9 @@
 (define-key global-map [?\s-w] (function (lambda () (interactive) (kill-buffer nil) (manual-refresh-frames-tab-groups))))
 
 ;; Users will need to add additional hooks for specific modes that do not open files
-;; and some not so commonly used functions such as `rename-buffer`.
+;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
+;; a kill-buffer-hook, I linked the manual refresh to a define-key function that kills
+;; a buffer -- an empty frame will be deleted if there are no tab groups remaining.
 (add-hook 'find-file-hook
   (lambda()
     (toggle-frames-and-tab-groups)
