@@ -3,6 +3,8 @@
 ;; version 1.00 -- frames / tab-groups:  common, main, wanderlust, org-mode
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
+;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
+
 ;; authored, in part, by lawlist -- modifying functions at the following links:
 ;; http://www.emacswiki.org/emacs/TabBarMode
 ;; https://github.com/bamanzi/dotemacs-full/blob/master/init.d/25-tabbar.el
