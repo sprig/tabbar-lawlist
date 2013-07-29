@@ -585,10 +585,10 @@ Return a list of one element based on major mode."
 ;; (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))
 
 ;;  ;; list of frames -- one per line
-;;  (let* ((poop (make-vector (length frames) nil))
+;;  (let* ((lawlist (make-vector (length frames) nil))
 ;;    (z 0))
 ;;      (dolist (frame frames)
-;;        (aset poop z
+;;        (aset lawlist z
 ;;          (nconc
 ;;            (list
 ;;              (message "%s" (frame-parameter frame 'name))
