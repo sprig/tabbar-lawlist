@@ -51,10 +51,10 @@
 (setq ido-enable-flex-matching t)
 (require 'dash) ;; needed for miscellaneous functions towards end of file
 
-(global-set-key [(f5)] 'manual-refresh-frames-tab-groups)
+(global-set-key [(f5)] 'toggle-frames-and-tab-groups)
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
-(define-key global-map [?\s-w] (function (lambda () (interactive) (kill-buffer nil) (manual-refresh-frames-tab-groups))))
+(define-key global-map [?\s-w] (function (lambda () (interactive) (kill-buffer nil) (delete-frame-if-empty))))
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
@@ -602,7 +602,7 @@ Return a list of one element based on major mode."
   (if (equal "wanderlust" (frame-parameter nil 'name))
     (goto-tab-group "wanderlust")))
 
-(defun manual-refresh-frames-tab-groups ()
+(defun delete-frame-if-empty ()
 (interactive)
   (if (and
       (equal (format "%s" tabbar-current-tabset) "org-mode")
@@ -619,8 +619,7 @@ Return a list of one element based on major mode."
   (if (and
       (equal (format "%s" tabbar-current-tabset) "main")
       (not (equal "main" (frame-parameter nil 'name))))
-    (delete-frame) )
-  (toggle-frames-and-tab-groups) )
+    (delete-frame) ) )
 
 
 (defun print-frame-list ()
