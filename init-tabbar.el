@@ -137,7 +137,7 @@
 (defun tabbar-choice ()
 (interactive)
   "Switch between tabbar modes."
-  (message "Choose:  [d]efault | plan [b] | [a]ll | [i/I]do | [f/F]rame | [v/h] Tile | [g]roups " )
+  (message "Choose:  [d]efault | [c]ourt | [a]ll | [i/I]do | [f/F]rame | [v/h] Tile | [g]roups " )
 
   (let*
 
@@ -146,16 +146,20 @@
   (choice (case a
 
   ((?d)
+  (setq tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
   (setq tabbar-buffer-list-function 'tabbar+buffer-list-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (tabbar-display-update)
   (message "You have chosen: \"primary grouping\""))
   
-  ((?b)
-  (setq tabbar-buffer-list-function 'tabbar-buffer-list)
-  (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-  (tabbar-display-update)
-  (message "You have chosen: \"Plan B\""))
+  ((?c)
+  (setq tabbar+displayed-buffers '("*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
+  (setq tabbar-buffer-list-function 'tabbar+buffer-list-function)
+  (setq tabbar-buffer-groups-function 'court-appearance-buffer-groups)
+  (tabbar-current-tabset t)
+  (if (frame-exists "common")
+    (delete-frame))
+  (message "You have chosen: \"COURT\""))
   
   ((?a)
   (tabbar+init-group)
@@ -221,8 +225,8 @@
        "org-mode")
 
       ((member (buffer-name)
-                '("*TODO*"))
-        "org-mode")
+        '("*TODO*" "*Org Agenda*"))
+          "org-mode")
 
 ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
 ;;       ((string-equal "*" (substring (buffer-name) 0 1))
@@ -245,6 +249,41 @@
 
       ((memq major-mode
              '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode))
+       "main")
+
+      (t
+       ;; Return `mode-name' if not blank, `major-mode' otherwise.
+       (if (and (stringp mode-name)
+                ;; Take care of preserving the match-data because this
+                ;; function is called when updating the header line.
+                (save-match-data (string-match "[^ ]" mode-name)))
+           mode-name
+         (symbol-name major-mode))
+       ))))
+
+
+(defun court-appearance-buffer-groups ()
+    "Just a few buffer groups needed during court appearances."
+    (list
+     (cond
+
+      ((eq major-mode 'org-mode)
+       "org-mode")
+
+      ((member (buffer-name)
+        '("*TODO*" "*Org Agenda*"))
+          "org-mode")
+
+      ((memq major-mode
+             '(bbdb-mode wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode))
+       "wanderlust")
+
+      ((member (buffer-name)
+               '("*BBDB*" "*bbdb*" "*Completions*"))
+       "wanderlust")
+
+      ((memq major-mode
+             '(text-mode latex-mode))
        "main")
 
       (t
@@ -609,17 +648,42 @@ Return a list of one element based on major mode."
       (not (equal "org-mode" (frame-parameter nil 'name))))
     (delete-frame) )
   (if (and
-      (equal (format "%s" tabbar-current-tabset) "common")
-      (not (equal "common" (frame-parameter nil 'name))))
-    (delete-frame) )
-  (if (and
       (equal (format "%s" tabbar-current-tabset) "wanderlust")
       (not (equal "wanderlust" (frame-parameter nil 'name))))
     (delete-frame) )
   (if (and
       (equal (format "%s" tabbar-current-tabset) "main")
       (not (equal "main" (frame-parameter nil 'name))))
-    (delete-frame) ) )
+    (delete-frame) )
+  (if (and
+      (equal (format "%s" tabbar-current-tabset) "common")
+        (or (equal "main" (frame-parameter nil 'name))
+            (equal "wanderlust" (frame-parameter nil 'name))
+            (equal "org-mode" (frame-parameter nil 'name))
+        )
+      )
+      (progn
+      (toggle-frames-and-tab-groups)
+      (if
+        (and
+          (frame-exists "main")
+          (not (equal (format "%s" tabbar-current-tabset) "main"))
+        )
+        (delete-frame))
+      (if
+        (and
+          (frame-exists "org-mode")
+          (not (equal (format "%s" tabbar-current-tabset) "org-mode"))
+        )
+        (delete-frame))
+      (if
+        (and
+          (frame-exists "wanderlust")
+          (not (equal (format "%s" tabbar-current-tabset) "wanderlust"))
+        )
+        (delete-frame))
+      ))
+  )
 
 
 (defun print-frame-list ()
