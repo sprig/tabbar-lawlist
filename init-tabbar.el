@@ -233,18 +233,14 @@
 ;;       "common")
 
       ((member (buffer-name)
-        '("*scratch*" "*Messages*"))
+        '("*scratch*" "*Messages*" "*bbdb*"))
           "common")
 
       ((eq major-mode 'dired-mode)
        "dired")
 
       ((memq major-mode
-             '(bbdb-mode wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode rmail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-       "wanderlust")
-
-      ((member (buffer-name)
-               '("*BBDB*" "*bbdb*" "*Completions*"))
+             '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode rmail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
        "wanderlust")
 
       ((memq major-mode
@@ -275,11 +271,7 @@
           "org-mode")
 
       ((memq major-mode
-             '(bbdb-mode wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode))
-       "wanderlust")
-
-      ((member (buffer-name)
-               '("*BBDB*" "*bbdb*" "*Completions*"))
+             '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode))
        "wanderlust")
 
       ((memq major-mode
