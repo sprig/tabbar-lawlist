@@ -28,7 +28,7 @@
 ;;     modifications are made.
 
 ;; NOTE #2:  If the user wishes to `tile-frames-vertically` or `tile-frames-horizontally`, then
-;; install both frame-cmds frame-fns:
+;; install both frame-cmds and frame-fns:
 ;; http://www.emacswiki.org/emacs/frame-cmds.el
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 
