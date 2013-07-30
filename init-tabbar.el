@@ -186,14 +186,14 @@
   (ido-frame-bufs-switch-buffer)
   (message "You have selected ido-frame-bufs-switch-buffer."))
 
-  ;; requires installation of both frame-cmds frame-fns
+  ;; requires installation of both frame-cmds and frame-fns
   ;; http://www.emacswiki.org/emacs/frame-cmds.el
   ;; http://www.emacswiki.org/emacs/frame-fns.el
   ((?v)
   (tile-frames-vertically)
   (message "You have selected tile-frames-vertically."))
 
-  ;; requires installation of both frame-cmds frame-fns
+  ;; requires installation of both frame-cmds and frame-fns
   ;; http://www.emacswiki.org/emacs/frame-cmds.el
   ;; http://www.emacswiki.org/emacs/frame-fns.el
   ((?h)
