@@ -134,8 +134,6 @@
       (get-group "ORG"))
       (get-frame "MAIN")
       (get-group "MAIN")))))
-  (tabbar-display-update)
-  (sit-for 0)
   (message "You have chosen: \"COURT\""))
   
   ((?a)
