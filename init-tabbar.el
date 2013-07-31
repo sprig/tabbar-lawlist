@@ -1,6 +1,6 @@
 ;; init-tabbar.el
 
-;; version 1.00 -- frames / tab-groups:  common, main, wanderlust, org-mode
+;; version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
 ;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
@@ -38,7 +38,7 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
-(global-set-key [(f5)] (function (lambda () (interactive) (toggle-frames-and-tab-groups))))
+(global-set-key [(f5)] (function (lambda () (interactive) (tabbar-info) (frames-and-tab-groups) (tabbar-info)))) ;; manual reresh
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) ))) ;;  
@@ -49,7 +49,7 @@
 ;; a buffer -- an empty frame will be deleted if there are no tab groups remaining.
 (add-hook 'find-file-hook
   (lambda()
-    (toggle-frames-and-tab-groups)
+    (frames-and-tab-groups)
   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -97,7 +97,7 @@
 ;; made visible by specifically defining the names within the
 ;; variable `tabbar+displayed-buffers` AND also by adding the
 ;; following entry in `tabbar-buffer-groups`:
-;;   ((member (buffer-name) '("*scratch*" "*Messages*")) "common")
+;;   ((member (buffer-name) '("*scratch*" "*Messages*")) "SYSTEM")
 ;; If *scratch* is a text-mode file and not otherwise defined into
 ;; a particular tabbar-buffer-group based upon "buffer-name", then
 ;; *scratch* will appear in the tab group for text-mode files.
@@ -141,21 +141,27 @@
   (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (tabbar-display-update)
+  (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
+  (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
   (message "You have chosen: \"primary grouping\""))
   
   ((?c)
   (setq tabbar+displayed-buffers '("*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
   (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'court-appearance-buffer-groups)
-  (tabbar-current-tabset t)
-  (if (frame-exists "common")
+  (tabbar-display-update)
+  (if (frame-exists "SYSTEM")
     (delete-frame))
+  (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
+  (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
   (message "You have chosen: \"COURT\""))
   
   ((?a)
   (setq tabbar-buffer-list-function 'tabbar-buffer-list)
   (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
   (tabbar-display-update)
+  (define-key global-map [?\s-\~] 'tabbar-backward-tab)
+  (define-key global-map [?\s-\`] 'tabbar-forward-tab)
   (message "You have chosen: \"everything\""))
   
   ((?i)
@@ -212,34 +218,34 @@
        "Process")
 
       ((eq major-mode 'org-mode)
-       "org-mode")
+       "ORG")
 
       ((member (buffer-name)
         '("*TODO*" "*Org Agenda*"))
-          "org-mode")
+          "ORG")
 
 ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
 ;;       ((string-equal "*" (substring (buffer-name) 0 1))
-;;       "common")
+;;       "SYSTEM")
 
       ((member (buffer-name)
         '("*scratch*" "*Messages*" "*bbdb*"))
-          "common")
+          "SYSTEM")
 
       ((eq major-mode 'dired-mode)
        "dired")
 
       ((member (buffer-name)
         '("Folder" "Summary" "Email"))
-          "wanderlust")
+          "WANDERLUST")
 
       ((memq major-mode
              '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode rmail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-       "wanderlust")
+       "WANDERLUST")
 
       ((memq major-mode
              '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode))
-       "main")
+       "MAIN")
 
       (t
        ;; Return `mode-name' if not blank, `major-mode' otherwise.
@@ -258,19 +264,19 @@
      (cond
 
       ((eq major-mode 'org-mode)
-       "org-mode")
+       "ORG")
 
       ((member (buffer-name)
         '("*TODO*" "*Org Agenda*"))
-          "org-mode")
+          "ORG")
 
       ((memq major-mode
              '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode))
-       "wanderlust")
+       "WANDERLUST")
 
       ((memq major-mode
              '(text-mode latex-mode))
-       "main")
+       "MAIN")
 
       (t
        ;; Return `mode-name' if not blank, `major-mode' otherwise.
@@ -308,20 +314,45 @@
                   (switch-to-buffer (car group)) ))
           (tabbar-tabs tabbar-tabsets-tabset))) )
 
-(defun goto-tab-group (group-name)
+
+(defun get-group (group-name)
   "Jump to a specific tabbar group."
   (unless (and (featurep 'tabbar)
                tabbar-mode)
     (error "Error: tabbar-mode not turned on."))
   (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh groups
-  (let* ( (groups (mapcar #'(lambda (group)
-                              (format "%s" (cdr group)))
-                          (tabbar-tabs tabbar-tabsets-tabset))))
+  (let* ( (groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset))))
     (mapc #'(lambda (group)
               (when (string= group-name (format "%s" (cdr group)))
-                  (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
-                  (switch-to-buffer (car group)) ))
-          (tabbar-tabs tabbar-tabsets-tabset))) )
+                  (if (not (equal (format "%s" (car group)) "#<killed buffer>"))
+                    (progn
+                      (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
+                      (switch-to-buffer (car group)) )
+                    ;; else
+                    (message "(car group):  %s" (car group))
+                  )
+               )
+            )
+      (tabbar-tabs tabbar-tabsets-tabset)
+    )
+  )
+
+  (and (eq header-line-format tabbar-header-line-format)
+    (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
+    (eq (current-buffer) (window-buffer (selected-window)))
+    (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
+          (b  (current-buffer))
+          found sibling)
+    (while (and bl (not found))
+      (if (eq b (car bl))
+        (setq found t)
+          (setq sibling (car bl)))
+      (setq bl (cdr bl)))
+      (when (and (setq sibling (or (car bl) sibling))
+            (buffer-live-p sibling))
+         ;; Move sibling buffer in front of the buffer list.
+        (save-current-buffer (switch-to-buffer sibling))
+        (message "sibling:  %s" sibling)))) )
 
 
 (defun ido-jump-to-tab ()
@@ -455,258 +486,195 @@ Return a list of one element based on major mode."
   )
 )
 
-(defun frame-exists-common ()
+(defun frame-exists-system ()
 (interactive)
-  (if (frame-exists "common")
+  (if (frame-exists "SYSTEM")
     ;; then
     (progn
-      (message "Congratulations -- frame \"common\" exists!")
-      (goto-tab-group "common")
+      (message "The frame named \"SYSTEM\" already exists -- do not create.")
+      (get-group "SYSTEM")
     )
     ;; else
-    (message "Sorry -- frame \"common\" does not exist :\(" )
+    (message "The frame named \"SYSTEM\" does not exist -- create frame." )
     ;; take control of an existing frame not yet specially named.
     (if
       (and
-        (not (equal "main" (frame-parameter nil 'name)))
-        (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode" (frame-parameter nil 'name)))
-        (not (equal "wanderlust" (frame-parameter nil 'name)))
+        (not (equal "MAIN" (frame-parameter nil 'name)))
+        (not (equal "SYSTEM" (frame-parameter nil 'name)))
+        (not (equal "ORG" (frame-parameter nil 'name)))
+        (not (equal "WANDERLUST" (frame-parameter nil 'name)))
       )
       ;; then
       (progn
-        (set-frame-name "common")
+        (set-frame-name "SYSTEM")
         (toggle-frame-maximized)
       )
       ;; else
         (new-frame)
-        (set-frame-name "common")
+        (set-frame-name "SYSTEM")
         (toggle-frame-maximized) )
 
-    (goto-tab-group "common")
+    (get-group "SYSTEM")
   )
 )
 
 (defun frame-exists-main ()
 (interactive)
-  (if (frame-exists "main")
+  (if (frame-exists "MAIN")
     ;; then
     (progn
-      (message "Congratulations -- frame \"main\" exists!")
-      (goto-tab-group "main")
+      (message "The frame named \"MAIN\" already exists -- do not create.")
+      (get-group "MAIN")
     )
     ;; else
-    (message "Sorry -- frame \"main\" does not exist :\(" )
+    (message "The frame named \"MAIN\" does not exist -- create frame." )
     ;; take control of an existing frame not yet specially named.
     (if
       (and
-        (not (equal "main" (frame-parameter nil 'name)))
-        (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode" (frame-parameter nil 'name)))
-        (not (equal "wanderlust" (frame-parameter nil 'name)))
+        (not (equal "MAIN" (frame-parameter nil 'name)))
+        (not (equal "SYSTEM" (frame-parameter nil 'name)))
+        (not (equal "ORG" (frame-parameter nil 'name)))
+        (not (equal "WANDERLUST" (frame-parameter nil 'name)))
       )
       ;; then
       (progn
-        (set-frame-name "main")
+        (set-frame-name "MAIN")
         (toggle-frame-maximized)
       )
       ;; else
         (new-frame)
-        (set-frame-name "main")
+        (set-frame-name "MAIN")
         (toggle-frame-maximized) )
-    (goto-tab-group "main")
+    (get-group "MAIN")
   )
 )
 
 
 (defun frame-exists-org-mode ()
 (interactive)
-  (if (frame-exists "org-mode")
+  (if (frame-exists "ORG")
     ;; then
     (progn
-      (message "Congratulations -- frame \"org-mode\" exists!")
-      (goto-tab-group "org-mode")
+      (message "The frame named \"ORG\" exists -- do not create.")
+      (get-group "ORG")
     )
     ;; else
-    (message "Sorry -- frame \"org-mode\" does not exist :\(" )
+    (message "The frame named \"ORG\" does not exist -- create frame." )
     ;; take control of an existing frame not yet specially named.
     (if
       (and
-        (not (equal "main" (frame-parameter nil 'name)))
-        (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode" (frame-parameter nil 'name)))
-        (not (equal "wanderlust" (frame-parameter nil 'name)))
+        (not (equal "MAIN" (frame-parameter nil 'name)))
+        (not (equal "SYSTEM" (frame-parameter nil 'name)))
+        (not (equal "ORG" (frame-parameter nil 'name)))
+        (not (equal "WANDERLUST" (frame-parameter nil 'name)))
       )
       ;; then
       (progn
-        (set-frame-name "org-mode")
+        (set-frame-name "ORG")
         (toggle-frame-maximized)
       )
       ;; else
         (new-frame)
-        (set-frame-name "org-mode")
+        (set-frame-name "ORG")
         (toggle-frame-maximized) )
-    (goto-tab-group "org-mode")
+    (get-group "ORG")
   )
 )
 
 (defun frame-exists-wanderlust ()
 (interactive)
-  (if (frame-exists "wanderlust")
+  (if (frame-exists "WANDERLUST")
     ;; then
     (progn
-      (message "Congratulations -- frame \"wanderlust\" exists!")
-      (goto-tab-group "wanderlust")
+      (message "The frame named \"WANDERLUST\" already exists -- do not create.")
+      (get-group "WANDERLUST")
     )
     ;; else
-    (message "Sorry -- frame \"wanderlust\" does not exist :\(" )
+    (message "The frame named \"WANDERLUST\" does not exist -- create frame." )
     ;; take control of an existing frame not yet specially named.
     (if
       (and
-        (not (equal "main" (frame-parameter nil 'name)))
-        (not (equal "common" (frame-parameter nil 'name)))
-        (not (equal "org-mode" (frame-parameter nil 'name)))
-        (not (equal "wanderlust" (frame-parameter nil 'name)))
+        (not (equal "MAIN" (frame-parameter nil 'name)))
+        (not (equal "SYSTEM" (frame-parameter nil 'name)))
+        (not (equal "ORG" (frame-parameter nil 'name)))
+        (not (equal "WANDERLUST" (frame-parameter nil 'name)))
       )
       ;; then
       (progn
-        (set-frame-name "wanderlust")
+        (set-frame-name "WANDERLUST")
         (toggle-frame-maximized)
       )
       ;; else
         (new-frame)
-        (set-frame-name "wanderlust")
+        (set-frame-name "WANDERLUST")
         (toggle-frame-maximized) )
-    (goto-tab-group "wanderlust")
+    (get-group "WANDERLUST")
   )
 )
 
-(defun toggle-frames-and-tab-groups ()
+(defun frames-and-tab-groups ()
 (interactive)
   (tabbar-current-tabset t)
-  (if (equal (format "%s" tabbar-current-tabset) "main")
+  (if (equal (format "%s" tabbar-current-tabset) "MAIN")
       (frame-exists-main))
-  (if (equal (format "%s" tabbar-current-tabset) "common")
-      (frame-exists-common))
-  (if (equal (format "%s" tabbar-current-tabset) "org-mode")
+  (if (equal (format "%s" tabbar-current-tabset) "SYSTEM")
+      (frame-exists-system))
+  (if (equal (format "%s" tabbar-current-tabset) "ORG")
       (frame-exists-org-mode))
-  (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
+  (if (equal (format "%s" tabbar-current-tabset) "WANDERLUST")
       (frame-exists-wanderlust)) )
 
 (defun cycle-forward-frames-groups ()
   "Cycle to next available fame / group."
 (interactive)
   (other-frame 1)
-  (if (equal "main" (frame-parameter nil 'name))
-    (goto-tab-group "main"))
-  (if (equal "common" (frame-parameter nil 'name))
-    (goto-tab-group "common"))
-  (if (equal "org-mode" (frame-parameter nil 'name))
-    (goto-tab-group "org-mode"))
-  (if (equal "wanderlust" (frame-parameter nil 'name))
-    (goto-tab-group "wanderlust")))
+  (if (equal "MAIN" (frame-parameter nil 'name))
+    (get-group "MAIN"))
+  (if (equal "SYSTEM" (frame-parameter nil 'name))
+    (get-group "SYSTEM"))
+  (if (equal "ORG" (frame-parameter nil 'name))
+    (get-group "ORG"))
+  (if (equal "WANDERLUST" (frame-parameter nil 'name))
+    (get-group "WANDERLUST")))
 
 (defun cycle-backward-frames-groups ()
   "Cycle to next available fame / group."
 (interactive)
   (other-frame -1)
-  (if (equal "main" (frame-parameter nil 'name))
-    (goto-tab-group "main"))
-  (if (equal "common" (frame-parameter nil 'name))
-    (goto-tab-group "common"))
-  (if (equal "org-mode" (frame-parameter nil 'name))
-    (goto-tab-group "org-mode"))
-  (if (equal "wanderlust" (frame-parameter nil 'name))
-    (goto-tab-group "wanderlust")))
+  (if (equal "MAIN" (frame-parameter nil 'name))
+    (get-group "MAIN"))
+  (if (equal "SYSTEM" (frame-parameter nil 'name))
+    (get-group "SYSTEM"))
+  (if (equal "ORG" (frame-parameter nil 'name))
+    (get-group "ORG"))
+  (if (equal "WANDERLUST" (frame-parameter nil 'name))
+    (get-group "WANDERLUST")))
 
 
 ;;  (tabbar-current-tabset 't) ;; refresh
 ;;  (tabbar-display-update) ;; refresh
+;;  Tabbar 2.0 uses `tabbar-buffer-track-killed` (linked to a `kill-buffer-hook`) to cleanup and select the post-kill buffer.  There are many buffers throughout Emacs that exist only for a brief moment in time, which are not visible to the naked eye.  While it may be true that `tabbar-buffer-track-killed` serves a useful purpose, it is nevertheless responsible for setting existing tabs to groups of "nil" when a buffer is killed manually -- this makes it extremely difficult to detect whether a frame is still associated with a particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to `tabbar-buffer-track-killed`) fixes this dilemma.
 (defun delete-frame-if-empty ()
 (interactive)
-(remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
-(kill-buffer nil)
-(add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
-(tabbar-info)
+  (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+  (kill-buffer nil)
+  (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
   (if
     (and
-      (equal "wanderlust" (frame-parameter nil 'name))
-      (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
-    (progn
-      
-      ;; #<killed buffer>
+      (equal "WANDERLUST" (frame-parameter nil 'name))
+      (not (equal (format "%s" tabbar-current-tabset) "WANDERLUST")))
+      (delete-frame))
+  (if
+    (and
+      (equal "ORG" (frame-parameter nil 'name))
+      (not (equal (format "%s" tabbar-current-tabset) "ORG")))
+      (delete-frame))
+  (if
+    (and
+      (equal "MAIN" (frame-parameter nil 'name))
+      (not (equal (format "%s" tabbar-current-tabset) "MAIN")))
+      (delete-frame))  )
 
-      (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh groups
-      (let* ((groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))))
-      (setq group-name "wanderlust")
-      (mapc #'(lambda (group) (when (string= group-name (format "%s" (cdr group)))
-        (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
-        (switch-to-buffer (car group)) )) (tabbar-tabs tabbar-tabsets-tabset))
-
-    (and (eq header-line-format tabbar-header-line-format)
-      (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
-      (eq (current-buffer) (window-buffer (selected-window)))
-      (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
-            (b  (current-buffer))
-            found sibling)
-      (while (and bl (not found))
-        (if (eq b (car bl))
-          (setq found t)
-            (setq sibling (car bl)))
-        (setq bl (cdr bl)))
-        (when (and (setq sibling (or (car bl) sibling))
-              (buffer-live-p sibling))
-           ;; Move sibling buffer in front of the buffer list.
-          (save-current-buffer (switch-to-buffer sibling))
-          (message "switch-to-buffer sibling:  %s:" sibling))))
-
-    (if
-      (and
-        (equal "wanderlust" (frame-parameter nil 'name))
-        (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
-      (progn
-        (tabbar-info)
-        (delete-frame)
-        (message "The frame named \"wanderlust\" has been deleted.") )))))
-
-;; delete-frame-if-empty -- TO BE CONTINUED . . .
-
-;;  (if (and
-;;      (equal (format "%s" tabbar-current-tabset) "main")
-;;      (not (equal "main" (frame-parameter nil 'name))))
-;;    (delete-frame) )
-;;  (if (and
-;;      (equal (format "%s" tabbar-current-tabset) "org-mode")
-;;      (not (equal "org-mode" (frame-parameter nil 'name))))
-;;    (delete-frame) )
-;;  (if (and
-;;      (equal (format "%s" tabbar-current-tabset) "common")
-;;        (or (equal "main" (frame-parameter nil 'name))
-;;            (equal "wanderlust" (frame-parameter nil 'name))
-;;            (equal "org-mode" (frame-parameter nil 'name))
-;;        )
-;;      )
-;;      (progn
-;;      (toggle-frames-and-tab-groups)
-;;      (if
-;;        (and
-;;          (frame-exists "main")
-;;          (not (equal (format "%s" tabbar-current-tabset) "main"))
-;;        )
-;;        (delete-frame))
-;;      (if
-;;        (and
-;;          (frame-exists "org-mode")
-;;          (not (equal (format "%s" tabbar-current-tabset) "org-mode"))
-;;        )
-;;        (delete-frame))
-;;      (if
-;;        (and
-;;          (frame-exists "wanderlust")
-;;          (not (equal (format "%s" tabbar-current-tabset) "wanderlust"))
-;;        )
-;;        (delete-frame))
-;;      ))
 
 (defun print-frame-list ()
  (interactive)
