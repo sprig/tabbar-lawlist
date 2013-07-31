@@ -732,10 +732,6 @@ Return a list of one element based on major mode."
   )
 )
 
-;; list of frames on the same line without delimiters
-;; (message "%s" (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
-;; (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))
-
 ;;  ;; list of frames -- one per line
 ;;  (let* ((lawlist (make-vector (length frames) nil))
 ;;    (z 0))
