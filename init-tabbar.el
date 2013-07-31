@@ -32,29 +32,16 @@
 ;; http://www.emacswiki.org/emacs/frame-cmds.el
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 
-;; NOTE #3:  Some of the miscellaneous functions (unrelated to organizing frames with tab groups),
-;; require the installation of dash:
-;;
-;; M-x package-install dash
-;;
-;; The user init file needs the following code:
-;;
-;; (require 'package)
-;; (add-to-list 'package-archives
-;;  '("melpa" . "http://melpa.milkbox.net/packages/") t)
-
-
 
 (require 'tabbar)
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
-(require 'dash) ;; needed for miscellaneous functions towards end of file
 
 (global-set-key [(f5)] (function (lambda () (interactive) (toggle-frames-and-tab-groups))))
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
-(define-key global-map [?\s-w] (function (lambda () (interactive) (kill-buffer nil) (delete-frame-if-empty))))
+(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) ))) ;;  
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
@@ -64,6 +51,25 @@
   (lambda()
     (toggle-frames-and-tab-groups)
   ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun tabbar-info ()
+"Diagnostic tabbar data."
+(interactive)
+(message "---------------------- tabbar-info ---------------------")
+(message "Tab - Focus:  %s" (tabbar-selected-tab tabbar-current-tabset))
+(message "Tabs - Focus:  %s" (tabbar-tabs tabbar-current-tabset))
+(message "Group - Focus:  %s" tabbar-current-tabset)
+(message "Frame - Focus:  %s" (frame-parameter nil 'name))
+(message "All Frames:  %s" (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
+(message "Buffer - Focus:  %s" (buffer-name))
+(message "Buffers - Focus:  %s" (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
+(message "All Groups:  %s" (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
+(message "Previously Visited Tab:  %s" (tabbar-tabs tabbar-tabsets-tabset))
+(message "--------------------------------------------------------"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; BUFFER MODIFICATION STATE INDICATOR
 (defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
@@ -85,7 +91,7 @@
 ;; The variable `tabbar+displayed-buffers` is used to show
 ;; buffers with astericks when switching between tab groups
 ;; with either `tabbar-forward-group` or `tabbar-backward-group`.
-;; The function `tabbar+buffer-list-function` hides buffers with
+;; The function `buffer-lawlist-function` hides buffers with
 ;; astericks -- tabbar+displayed-buffers show select buffers.
 ;; For example, the buffers "*scratch*" and "*Messages* can be
 ;; made visible by specifically defining the names within the
@@ -102,15 +108,15 @@
 ;; specified in the variable `tabbar-buffer-list-function'.  The
 ;; default function: `tabbar-buffer-list', excludes buffers whose name
 ;; starts with a space, when they are not visiting a file.
-(setq tabbar-buffer-list-function 'tabbar+buffer-list-function)
-(defun tabbar+buffer-list-function ()
+(setq tabbar-buffer-list-function 'buffer-lawlist-function)
+(defun buffer-lawlist-function ()
   (let* ((hides (list ?\ ?\*))
   (re (regexp-opt tabbar+displayed-buffers))
   (cur-buf (current-buffer))
   (tabs (delq nil
   (mapcar (lambda (buf)
   (let ((name (buffer-name buf)))
-  (when (and (not (string-match "*lawlist:.**" name))
+  (when (and (not (string-match "*lawlist:.**" name)) ;; still not sure what this line does
   (or (string-match re name)
   (not (memq (aref name 0) hides))))
   buf)))
@@ -118,21 +124,6 @@
   (if (memq cur-buf tabs)
   tabs
   (cons cur-buf tabs))))
-
-(defconst tabbar+default-group-name "DEFAULT")
- 
-(defun tabbar+init-group ()
-""
-(--map (with-current-buffer it
-(setq tabbar+group tabbar+default-group-name))
-(buffer-list)))
-
-(defvar tabbar+const-group-list
-(--map (cons it tabbar+default-group-name)
-'("*scratch*"
-"*Messages*"
-"*Packages*")))
-
 
 (defun tabbar-choice ()
 (interactive)
@@ -147,14 +138,14 @@
 
   ((?d)
   (setq tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
-  (setq tabbar-buffer-list-function 'tabbar+buffer-list-function)
+  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (tabbar-display-update)
   (message "You have chosen: \"primary grouping\""))
   
   ((?c)
   (setq tabbar+displayed-buffers '("*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
-  (setq tabbar-buffer-list-function 'tabbar+buffer-list-function)
+  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'court-appearance-buffer-groups)
   (tabbar-current-tabset t)
   (if (frame-exists "common")
@@ -162,9 +153,8 @@
   (message "You have chosen: \"COURT\""))
   
   ((?a)
-  (tabbar+init-group)
   (setq tabbar-buffer-list-function 'tabbar-buffer-list)
-  (setq tabbar-buffer-groups-function '(lambda () (list tabbar+default-group-name)))
+  (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
   (tabbar-display-update)
   (message "You have chosen: \"everything\""))
   
@@ -238,6 +228,10 @@
 
       ((eq major-mode 'dired-mode)
        "dired")
+
+      ((member (buffer-name)
+        '("Folder" "Summary" "Email"))
+          "wanderlust")
 
       ((memq major-mode
              '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode rmail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
@@ -314,10 +308,6 @@
                   (switch-to-buffer (car group)) ))
           (tabbar-tabs tabbar-tabsets-tabset))) )
 
-;; (message "%s" tabbar-current-tabset) ;; tab group currently selected
-;; (message "%s" (tabbar-tabs tabbar-tabsets-tabset)) ;; all buffers by group
-;; (message "%s" groups) ) ;; all groups
-
 (defun goto-tab-group (group-name)
   "Jump to a specific tabbar group."
   (unless (and (featurep 'tabbar)
@@ -332,10 +322,6 @@
                   (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
                   (switch-to-buffer (car group)) ))
           (tabbar-tabs tabbar-tabsets-tabset))) )
-
-(defun example-using-goto-tab-group ()
-(interactive)
-(goto-tab-group "org-mode"))
 
 
 (defun ido-jump-to-tab ()
@@ -633,50 +619,94 @@ Return a list of one element based on major mode."
   (if (equal "wanderlust" (frame-parameter nil 'name))
     (goto-tab-group "wanderlust")))
 
+
+;;  (tabbar-current-tabset 't) ;; refresh
+;;  (tabbar-display-update) ;; refresh
 (defun delete-frame-if-empty ()
 (interactive)
-  (if (and
-      (equal (format "%s" tabbar-current-tabset) "org-mode")
-      (not (equal "org-mode" (frame-parameter nil 'name))))
-    (delete-frame) )
-  (if (and
-      (equal (format "%s" tabbar-current-tabset) "wanderlust")
-      (not (equal "wanderlust" (frame-parameter nil 'name))))
-    (delete-frame) )
-  (if (and
-      (equal (format "%s" tabbar-current-tabset) "main")
-      (not (equal "main" (frame-parameter nil 'name))))
-    (delete-frame) )
-  (if (and
-      (equal (format "%s" tabbar-current-tabset) "common")
-        (or (equal "main" (frame-parameter nil 'name))
-            (equal "wanderlust" (frame-parameter nil 'name))
-            (equal "org-mode" (frame-parameter nil 'name))
-        )
-      )
-      (progn
-      (toggle-frames-and-tab-groups)
-      (if
-        (and
-          (frame-exists "main")
-          (not (equal (format "%s" tabbar-current-tabset) "main"))
-        )
-        (delete-frame))
-      (if
-        (and
-          (frame-exists "org-mode")
-          (not (equal (format "%s" tabbar-current-tabset) "org-mode"))
-        )
-        (delete-frame))
-      (if
-        (and
-          (frame-exists "wanderlust")
-          (not (equal (format "%s" tabbar-current-tabset) "wanderlust"))
-        )
-        (delete-frame))
-      ))
-  )
+(remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+(kill-buffer nil)
+(add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+(tabbar-info)
+  (if
+    (and
+      (equal "wanderlust" (frame-parameter nil 'name))
+      (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
+    (progn
+      
+      ;; #<killed buffer>
 
+      (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh groups
+      (let* ((groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))))
+      (setq group-name "wanderlust")
+      (mapc #'(lambda (group) (when (string= group-name (format "%s" (cdr group)))
+        (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
+        (switch-to-buffer (car group)) )) (tabbar-tabs tabbar-tabsets-tabset))
+
+    (and (eq header-line-format tabbar-header-line-format)
+      (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
+      (eq (current-buffer) (window-buffer (selected-window)))
+      (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
+            (b  (current-buffer))
+            found sibling)
+      (while (and bl (not found))
+        (if (eq b (car bl))
+          (setq found t)
+            (setq sibling (car bl)))
+        (setq bl (cdr bl)))
+        (when (and (setq sibling (or (car bl) sibling))
+              (buffer-live-p sibling))
+           ;; Move sibling buffer in front of the buffer list.
+          (save-current-buffer (switch-to-buffer sibling))
+          (message "switch-to-buffer sibling:  %s:" sibling))))
+
+    (if
+      (and
+        (equal "wanderlust" (frame-parameter nil 'name))
+        (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
+      (progn
+        (tabbar-info)
+        (delete-frame)
+        (message "The frame named \"wanderlust\" has been deleted.") )))))
+
+;; delete-frame-if-empty -- TO BE CONTINUED . . .
+
+;;  (if (and
+;;      (equal (format "%s" tabbar-current-tabset) "main")
+;;      (not (equal "main" (frame-parameter nil 'name))))
+;;    (delete-frame) )
+;;  (if (and
+;;      (equal (format "%s" tabbar-current-tabset) "org-mode")
+;;      (not (equal "org-mode" (frame-parameter nil 'name))))
+;;    (delete-frame) )
+;;  (if (and
+;;      (equal (format "%s" tabbar-current-tabset) "common")
+;;        (or (equal "main" (frame-parameter nil 'name))
+;;            (equal "wanderlust" (frame-parameter nil 'name))
+;;            (equal "org-mode" (frame-parameter nil 'name))
+;;        )
+;;      )
+;;      (progn
+;;      (toggle-frames-and-tab-groups)
+;;      (if
+;;        (and
+;;          (frame-exists "main")
+;;          (not (equal (format "%s" tabbar-current-tabset) "main"))
+;;        )
+;;        (delete-frame))
+;;      (if
+;;        (and
+;;          (frame-exists "org-mode")
+;;          (not (equal (format "%s" tabbar-current-tabset) "org-mode"))
+;;        )
+;;        (delete-frame))
+;;      (if
+;;        (and
+;;          (frame-exists "wanderlust")
+;;          (not (equal (format "%s" tabbar-current-tabset) "wanderlust"))
+;;        )
+;;        (delete-frame))
+;;      ))
 
 (defun print-frame-list ()
  (interactive)
@@ -721,118 +751,6 @@ Return a list of one element based on major mode."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun recently-used-buffer ()
-(interactive)
-(other-buffer (current-buffer) 1))
- 
-(defun tabbar+sort-tab ()
-"Sort current tab group lexicographically"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset)))
-(if (and ctabset ctabs)
-(progn
-(set ctabset (sort ctabs (lambda (b1 b2)
-(string-lessp (buffer-name (car b1))
-(buffer-name (car b2))))))
-(put ctabset 'template nil)
-(tabbar-display-update)))))
 
-(defun tabbar+buffer-help-on-tab (tab)
-"Return the help string shown when mouse is on a TAB."
-(if tabbar--buffer-show-groups
-(let* ((tabset (tabbar-tab-tabset tab))
-(tab (tabbar-selected-tab tabset)))
-(format "mouse-1: switch to buffer %S in group [%s]"
-(buffer-name (tabbar-tab-value tab)) tabset))
-(format "\
-mouse-1: switch to buffer %S\n\
-mouse-2: kill this buffer\n\
-mouse-3: delete other windows"
-(buffer-name (tabbar-tab-value tab)))))
- 
-(defun tabbar+buffer-select-tab (event tab)
-"On mouse EVENT, select TAB."
-(let ((mouse-button (event-basic-type event))
-(buffer (tabbar-tab-value tab)))
-(cond
-((eq mouse-button 'mouse-2)
-(with-current-buffer buffer
-(kill-buffer)))
-((eq mouse-button 'mouse-3)
-(delete-other-windows))
-(t
-(switch-to-buffer buffer)))
-;; Don't show groups.
-(tabbar-buffer-show-groups nil)))
- 
-(setq tabbar-help-on-tab-function 'tabbar+buffer-help-on-tab)
-(setq tabbar-select-tab-function 'tabbar+buffer-select-tab)
-
-;;
-;; Tab Position
-;;
- 
-(defun tabbar+get-current-buffer-index ()
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset)))
-(length (--take-while (not (eq it ctab)) ctabs))))
- 
-(defun insert- (list-object index element)
-(append (-take index list-object) (list element) (-drop index list-object)))
- 
-(defun tabbar+move (direction)
-"Move current tab to (+ index DIRECTION)"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset))
-(index (tabbar+get-current-buffer-index))
-(others (--remove (eq it ctab) ctabs))
-(ins (mod (+ index direction (+ 1 (length others))) (+ 1 (length others)))))
-(set ctabset (insert- others ins ctab))
-(put ctabset 'template nil)
-(tabbar-display-update)))
- 
-(defun tabbar+move-right ()
-"Move current tab to right"
-(interactive)
-(tabbar+move +1))
- 
-(defun tabbar+move-left ()
-"Move current tab to left"
-(interactive)
-(tabbar+move -1))
- 
-;;
-;; Kill Buffer or Group
-;;
- 
-(defun tabbar+remove-right ()
-"Remove right side buffers"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset)))
-(--map (kill-buffer (car it)) (cdr (--drop-while (not (eq ctab it)) ctabs)))))
- 
-(defun tabbar+remove-left ()
-"Remove left side buffers"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset)))
-(--map (kill-buffer (car it)) (--take-while (not (eq ctab it)) ctabs))))
- 
-(defun tabbar+kill-group (group)
-"Kill all buffers belonging to GROUP."
-(interactive
-(list (completing-read "Tab Group: " (tabbar+get-all-group-name))))
-(->> (buffer-list)
-(--filter (string= group (tabbar+get-group it)))
-(-map 'kill-buffer)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide 'init-tabbar)
