@@ -17,7 +17,7 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
-(global-set-key [(f5)] (function (lambda () (interactive) (tabbar-info) (frames-and-tab-groups) (tabbar-info)))) ;; manual reresh
+(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-and-tab-groups)))) ;; manual reresh
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) ))) ;;  
@@ -125,14 +125,18 @@
   (message "You have chosen: \"primary grouping\""))
   
   ((?c)
-  (setq tabbar+displayed-buffers '("*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
-  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-  (setq tabbar-buffer-groups-function 'court-appearance-buffer-groups)
-  (tabbar-display-update)
-  (if (frame-exists "SYSTEM")
-    (delete-frame))
-  (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
-  (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
+  (define-key global-map [?\s-\~] (function (lambda () (interactive)
+    (other-frame -1)
+    (if (equal "MAIN" (frame-parameter nil 'name))
+      (get-group "MAIN"))
+    (if (equal "ORG" (frame-parameter nil 'name))
+      (get-group "ORG")))))
+  (define-key global-map [?\s-\`] (function (lambda () (interactive)
+    (other-frame 1)
+    (if (equal "MAIN" (frame-parameter nil 'name))
+      (get-group "MAIN"))
+    (if (equal "ORG" (frame-parameter nil 'name))
+      (get-group "ORG")))))
   (message "You have chosen: \"COURT\""))
   
   ((?a)
@@ -168,6 +172,7 @@
   ;; http://www.emacswiki.org/emacs/frame-cmds.el
   ;; http://www.emacswiki.org/emacs/frame-fns.el
   ((?v)
+  (refresh-frames-and-tab-groups)
   (tile-frames-vertically)
   (message "You have selected tile-frames-vertically."))
 
@@ -175,6 +180,7 @@
   ;; http://www.emacswiki.org/emacs/frame-cmds.el
   ;; http://www.emacswiki.org/emacs/frame-fns.el
   ((?h)
+  (refresh-frames-and-tab-groups)
   (tile-frames-horizontally)
   (message "You have selected tile-frames-vertically."))
 
@@ -238,38 +244,6 @@
            mode-name
          (symbol-name major-mode))
        ))))
-
-
-(defun court-appearance-buffer-groups ()
-    "Just a few buffer groups needed during court appearances."
-    (list
-     (cond
-
-      ((eq major-mode 'org-mode)
-       "ORG")
-
-      ((member (buffer-name)
-        '("*TODO*" "*Org Agenda*"))
-          "ORG")
-
-      ((memq major-mode
-             '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode))
-       "WANDERLUST")
-
-      ((memq major-mode
-             '(text-mode latex-mode))
-       "MAIN")
-
-      (t
-       ;; Return `mode-name' if not blank, `major-mode' otherwise.
-       (if (and (stringp mode-name)
-                ;; Take care of preserving the match-data because this
-                ;; function is called when updating the header line.
-                (save-match-data (string-match "[^ ]" mode-name)))
-           mode-name
-         (symbol-name major-mode))
-       ))))
-
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
@@ -356,7 +330,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME BUFS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; NOTE # 1:  There are a couple of functions that are related to using frame-bufs by Al Paker
+;; NOTE:  There are a couple of functions that are related to using frame-bufs by Al Paker
 ;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
 ;; These functions are NOT needed to associate tab groups with specific frames.  The source
 ;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
@@ -622,6 +596,19 @@ Return a list of one element based on major mode."
   (if (equal (format "%s" tabbar-current-tabset) "WANDERLUST")
       (frame-exists-wanderlust)) )
 
+(defun refresh-frames-and-tab-groups ()
+(interactive)
+  (setq current-frame (frame-parameter nil 'name))
+  (get-group "WANDERLUST") (frames-and-tab-groups)
+  (get-group "SYSTEM") (frames-and-tab-groups)
+  (get-group "MAIN") (frames-and-tab-groups)
+  (get-group "ORG") (frames-and-tab-groups)
+  (get-frame "WANDERLUST") (get-group "WANDERLUST")
+  (get-frame "SYSTEM") (get-group "SYSTEM")
+  (get-frame "MAIN") (get-group "MAIN")
+  (get-frame "ORG") (get-group "ORG")
+  (get-frame current-frame))
+
 (defun cycle-forward-frames-groups ()
   "Cycle to next available fame / group."
 (interactive)
@@ -654,24 +641,45 @@ Return a list of one element based on major mode."
 ;;  Tabbar 2.0 uses `tabbar-buffer-track-killed` (linked to a `kill-buffer-hook`) to cleanup and select the post-kill buffer.  There are many buffers throughout Emacs that exist only for a brief moment in time, which are not visible to the naked eye.  While it may be true that `tabbar-buffer-track-killed` serves a useful purpose, it is nevertheless responsible for setting existing tabs to groups of "nil" when a buffer is killed manually -- this makes it extremely difficult to detect whether a frame is still associated with a particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to `tabbar-buffer-track-killed`) fixes this dilemma.
 (defun delete-frame-if-empty ()
 (interactive)
-  (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
-  (kill-buffer nil)
-  (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
   (if
     (and
-      (equal "WANDERLUST" (frame-parameter nil 'name))
-      (not (equal (format "%s" tabbar-current-tabset) "WANDERLUST")))
-      (delete-frame))
-  (if
-    (and
-      (equal "ORG" (frame-parameter nil 'name))
-      (not (equal (format "%s" tabbar-current-tabset) "ORG")))
-      (delete-frame))
-  (if
-    (and
-      (equal "MAIN" (frame-parameter nil 'name))
-      (not (equal (format "%s" tabbar-current-tabset) "MAIN")))
-      (delete-frame))  )
+      (not (equal "SYSTEM" (frame-parameter nil 'name))) ;; CONSIDER USING ONLY THIS CONDITION
+      (not (equal (buffer-name) "*scratch*"))
+      (not (equal (buffer-name) "*bbdb*"))
+      (not (equal (buffer-name) "*Messages*"))
+    )
+  ;; THEN
+  (progn
+    (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+    (kill-buffer nil)
+    (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+    (if
+      (and
+        (equal "WANDERLUST" (frame-parameter nil 'name))
+        (not (equal (format "%s" tabbar-current-tabset) "WANDERLUST")))
+        (delete-frame))
+    (if
+      (and
+        (equal "ORG" (frame-parameter nil 'name))
+        (not (equal (format "%s" tabbar-current-tabset) "ORG")))
+        (delete-frame))
+    (if
+      (and
+        (equal "MAIN" (frame-parameter nil 'name))
+        (not (equal (format "%s" tabbar-current-tabset) "MAIN")))
+        (delete-frame))
+  )
+  ;; ELSE
+  (if (not (equal (buffer-name) "*Messages*"))
+    ;; then
+    (kill-buffer nil)
+    ;; else
+    (message "Please leave the *Messages* buffer open, use \"kill-buffer\", or C-x k.") )
+;;    (kill-buffer nil)
+;;    (if (buffer-exists "*scratch*")
+;;      (switch-to-buffer "*scratch*")
+;;      (find-file "~/.0.data/.0.emacs/*scratch*")) 
+  ))
 
 
 (defun print-frame-list ()
