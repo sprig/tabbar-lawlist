@@ -674,7 +674,7 @@ Return a list of one element based on major mode."
     ;; then
     (kill-buffer nil)
     ;; else
-    (message "Please leave the *Messages* buffer open, use \"kill-buffer\", or C-x k.") )
+    (message "Please leave the *Messages* buffer open, or use M-x kill-buffer or kill-this-buffer, or use C-x k.") )
 ;;    (kill-buffer nil)
 ;;    (if (buffer-exists "*scratch*")
 ;;      (switch-to-buffer "*scratch*")
