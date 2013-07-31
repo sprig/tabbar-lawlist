@@ -130,8 +130,8 @@
   (define-key global-map [?\s-\`] (function (lambda () (interactive)
     (if (equal "MAIN" (frame-parameter nil 'name))
       (progn
-      (get-frame "ORG")
-      (get-group "ORG"))
+        (get-frame "ORG")
+        (get-group "ORG"))
       (get-frame "MAIN")
       (get-group "MAIN")))))
   (message "You have chosen: \"COURT\""))
