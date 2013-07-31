@@ -522,7 +522,7 @@ Return a list of one element based on major mode."
 )
 
 
-(defun frame-exists-org-mode ()
+(defun frame-exists-org ()
 (interactive)
   (if (frame-exists "ORG")
     ;; then
@@ -592,7 +592,7 @@ Return a list of one element based on major mode."
   (if (equal (format "%s" tabbar-current-tabset) "SYSTEM")
       (frame-exists-system))
   (if (equal (format "%s" tabbar-current-tabset) "ORG")
-      (frame-exists-org-mode))
+      (frame-exists-org))
   (if (equal (format "%s" tabbar-current-tabset) "WANDERLUST")
       (frame-exists-wanderlust)) )
 
