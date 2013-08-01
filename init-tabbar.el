@@ -80,7 +80,8 @@
 ;; If *scratch* is a text-mode file and not otherwise defined into
 ;; a particular tabbar-buffer-group based upon "buffer-name", then
 ;; *scratch* will appear in the tab group for text-mode files.
-(defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*")
+(defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
+  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; The list of buffers put in tabs is provided by the function
@@ -195,56 +196,59 @@
 )))))
 
 (defun tabbar-buffer-groups ()
-    "Return the list of group names the current buffer belongs to.
-      Return a list of one element based on major mode."
-    (list
-     (cond
-      ((or (get-buffer-process (current-buffer))
-           ;; Check if the major mode derives from `comint-mode' or
-           ;; `compilation-mode'.
-           (tabbar-buffer-mode-derived-p
-            major-mode '(comint-mode compilation-mode)))
-       "Process")
+  "Return the list of group names the current buffer belongs to.
+  Return a list of one element based on major mode."
+  (list
+   (cond
 
-      ((eq major-mode 'org-mode)
-       "ORG")
+    ((or (get-buffer-process (current-buffer))
+         ;; Check if the major mode derives from `comint-mode' or
+         ;; `compilation-mode'.
+         (tabbar-buffer-mode-derived-p
+          major-mode '(comint-mode compilation-mode)))
+     "Process")
 
-      ((member (buffer-name)
-        '("*TODO*" "*Org Agenda*"))
-          "ORG")
+    ((eq major-mode 'org-mode)
+     "ORG")
+
+    ((member (buffer-name)
+      '("*TODO*" "*Org Agenda*"))
+        "ORG")
 
 ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
 ;;       ((string-equal "*" (substring (buffer-name) 0 1))
 ;;       "SYSTEM")
 
-      ((member (buffer-name)
-        '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"))
-          "SYSTEM")
+    ((member (buffer-name)
+      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"))
+        "SYSTEM")
 
-      ((eq major-mode 'dired-mode)
-       "dired")
+    ((eq major-mode 'dired-mode)
+     "DIRED")
 
-      ((member (buffer-name)
-        '("Folder" "Summary" "Email"))
-          "WANDERLUST")
+    ((member (buffer-name)
+      '("Folder" "Summary" "Email"))
+        "WANDERLUST")
 
-      ((memq major-mode
-             '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode rmail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-       "WANDERLUST")
+    ((memq major-mode
+        '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
+        rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
+        gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
+     "WANDERLUST")
 
-      ((memq major-mode
-             '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode))
-       "MAIN")
+    ((memq major-mode
+           '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode))
+     "MAIN")
 
-      (t
-       ;; Return `mode-name' if not blank, `major-mode' otherwise.
-       (if (and (stringp mode-name)
-                ;; Take care of preserving the match-data because this
-                ;; function is called when updating the header line.
-                (save-match-data (string-match "[^ ]" mode-name)))
-           mode-name
-         (symbol-name major-mode))
-       ))))
+    (t
+     ;; Return `mode-name' if not blank, `major-mode' otherwise.
+      (if (and (stringp mode-name)
+              ;; Take care of preserving the match-data because this
+              ;; function is called when updating the header line.
+              (save-match-data (string-match "[^ ]" mode-name)))
+         mode-name
+       (symbol-name major-mode))
+     ))))
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
