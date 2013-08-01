@@ -164,7 +164,7 @@
   (message "You have selected switch-to-frame."))
 
   ;; This function requires installation of frame-bufs by Al Parker and substantial
-  ;; modifications if using a using current version of Emacs -- see notes down below.
+  ;; modifications if using a current version of Emacs -- see notes down below.
   ;; http://www.gnu.org/software/emacs/
   ((?F)
   (ido-frame-bufs-switch-buffer)
@@ -624,7 +624,7 @@
   ))
 
 
-(defun print-frame-list ()
+(defun print-frame-info ()
  (interactive)
   (message "%s"
     (mapcar
