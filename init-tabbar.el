@@ -569,7 +569,14 @@
 
 ;;  (tabbar-current-tabset 't) ;; refresh
 ;;  (tabbar-display-update) ;; refresh
-;;  Tabbar 2.0 uses `tabbar-buffer-track-killed` (linked to a `kill-buffer-hook`) to cleanup and select the post-kill buffer.  There are many buffers throughout Emacs that exist only for a brief moment in time, which are not visible to the naked eye.  While it may be true that `tabbar-buffer-track-killed` serves a useful purpose, it is nevertheless responsible for setting existing tabs to groups of "nil" when a buffer is killed manually -- this makes it extremely difficult to detect whether a frame is still associated with a particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to `tabbar-buffer-track-killed`) fixes this dilemma.
+;;  Tabbar 2.0 uses `tabbar-buffer-track-killed` (linked to a `kill-buffer-hook`) to cleanup
+;;  and select the post-kill buffer.  There are many buffers throughout Emacs that exist only
+;;  for a brief moment in time, which are not visible to the naked eye.  While it may be true
+;;  that `tabbar-buffer-track-killed` serves a useful purpose, it is nevertheless responsible
+;;  for setting existing tabs to groups of "nil" when a buffer is killed manually -- this
+;;  makes it extremely difficult to detect whether a frame is still associated with a
+;;  particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to
+;;  `tabbar-buffer-track-killed`) appears to fix this dilemma.
 (defun delete-frame-if-empty ()
 (interactive)
   (if
