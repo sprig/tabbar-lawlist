@@ -80,7 +80,7 @@
 ;; If *scratch* is a text-mode file and not otherwise defined into
 ;; a particular tabbar-buffer-group based upon "buffer-name", then
 ;; *scratch* will appear in the tab group for text-mode files.
-(defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*")
+(defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; The list of buffers put in tabs is provided by the function
@@ -116,7 +116,6 @@
   (choice (case a
 
   ((?d)
-  (setq tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*" "*BBDB*" "*bbdb*" "*Completions*"))
   (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
@@ -126,6 +125,8 @@
   (message "You have chosen: \"primary grouping\""))
   
   ((?c)
+  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
+  (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (define-key global-map [?\s-\`] nil)
   (define-key global-map [?\s-\`] (function (lambda () (interactive)
     (if (equal "MAIN" (frame-parameter nil 'name))
@@ -134,6 +135,8 @@
         (get-group "ORG"))
       (get-frame "MAIN")
       (get-group "MAIN")))))
+  (tabbar-display-update)
+  (sit-for 0)
   (message "You have chosen: \"COURT\""))
   
   ((?a)
@@ -215,7 +218,7 @@
 ;;       "SYSTEM")
 
       ((member (buffer-name)
-        '("*scratch*" "*Messages*" "*bbdb*"))
+        '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"))
           "SYSTEM")
 
       ((eq major-mode 'dired-mode)
