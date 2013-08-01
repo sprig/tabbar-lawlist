@@ -329,76 +329,6 @@
         (error "'%s' does not have a visible window" buffer-name)
       (switch-to-buffer buffer-name))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME BUFS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; NOTE:  There are a couple of functions that are related to using frame-bufs by Al Paker
-;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
-;; These functions are NOT needed to associate tab groups with specific frames.  The source
-;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
-;; If the user wishes to install frame-bufs with a current version of Emacs, then advanced
-;; Emacs source building skills are required because frame-bufs was written around the time
-;; of Emacs 23.4, and buff-menu.el is hard-coded into the executable of Emacs during the build --
-;; it is next to impossible to modify buff-menu afterwards unless it was omitted from build:
-;; a.  Remove contents of .../lisp/buff-menu.el before building Emacs, and leave the empty file.
-;; b.  After building, install buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
-;;     and put (provide 'buff-menu) at the bottom of the file and place it in the load path.  Then,
-;;     it will need to be required when loading Emacs -- i.e., (require 'buff-menu).  Of course,
-;;     the user will lose the benefits of recent improvements to buff-menu.el unless other
-;;     modifications are made.
-
-(defun ido-frame-bufs-switch-buffer ()
-  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
-  Other buffers are excluded."
-  (interactive)
-  (frame-bufs-mode t)
-      (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
-              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
-              (target (ido-completing-read "Buffer: " buffers-rotated)) )
-        (switch-to-buffer target))
-    (call-interactively 'ido-switch-buffer))
-
-(eval-after-load "frame-bufs"
-  `(progn
-     (add-hook 'frame-bufs-mode-on-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-frame-bufs-switch-buffer)
-                   (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
-     (add-hook 'frame-bufs-mode-off-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
-     ))
-
-;;and you need to modify your 'tabbar-buffer-groups-function'
-(defun tabbar-buffer-grouping-simple-with-frame-bufs ()
-  "Return the list of group names the current buffer belongs to.
-Return a list of one element based on major mode."
-  (setq last-tabbar-ruler-tabbar-buffer-groups
-        (list
-         (cond
-          ((= (aref (buffer-name) 0) ?*)
-           "Emacs")
-          ((or (memq major-mode '(dired-mode
-                                  eshell-mode
-                                  shell-mode
-                                  occur-mode
-                                  grep-mode
-                                  compilation-mode)))
-           "Utils")
-          (t
-           "Files"
-           ))))
-  (if (and (featurep 'frame-bufs)
-           frame-bufs-mode
-           (memq (current-buffer) (frame-bufs-buffer-list (selected-frame))))
-      (symbol-value 'last-tabbar-ruler-tabbar-buffer-groups)))
-
-;;  (eval-after-load "frame-bufs"
-;;    `(progn
-;;       ;;(fset 'bmz/tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
-;;       (setq tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
-;;       ))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAMES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun lawlist-new-frame (frame-name)
@@ -719,6 +649,76 @@ Return a list of one element based on major mode."
 ;;           )
 ;;        ) 
 ;;      (setq z (1+ z)) ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME BUFS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; NOTE:  There are a couple of functions that are related to using frame-bufs by Al Paker
+;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
+;; These functions are NOT needed to associate tab groups with specific frames.  The source
+;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
+;; If the user wishes to install frame-bufs with a current version of Emacs, then advanced
+;; Emacs source building skills are required because frame-bufs was written around the time
+;; of Emacs 23.4, and buff-menu.el is hard-coded into the executable of Emacs during the build --
+;; it is next to impossible to modify buff-menu afterwards unless it was omitted from build:
+;; a.  Remove contents of .../lisp/buff-menu.el before building Emacs, and leave the empty file.
+;; b.  After building, install buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
+;;     and put (provide 'buff-menu) at the bottom of the file and place it in the load path.  Then,
+;;     it will need to be required when loading Emacs -- i.e., (require 'buff-menu).  Of course,
+;;     the user will lose the benefits of recent improvements to buff-menu.el unless other
+;;     modifications are made.
+
+(defun ido-frame-bufs-switch-buffer ()
+  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
+  Other buffers are excluded."
+  (interactive)
+  (frame-bufs-mode t)
+      (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
+              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
+              (target (ido-completing-read "Buffer: " buffers-rotated)) )
+        (switch-to-buffer target))
+    (call-interactively 'ido-switch-buffer))
+
+(eval-after-load "frame-bufs"
+  `(progn
+     (add-hook 'frame-bufs-mode-on-hook
+               #'(lambda ()
+                   (global-set-key (kbd "C-x b") 'ido-frame-bufs-switch-buffer)
+                   (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
+     (add-hook 'frame-bufs-mode-off-hook
+               #'(lambda ()
+                   (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
+     ))
+
+;;and you need to modify your 'tabbar-buffer-groups-function'
+(defun tabbar-buffer-grouping-simple-with-frame-bufs ()
+  "Return the list of group names the current buffer belongs to.
+Return a list of one element based on major mode."
+  (setq last-tabbar-ruler-tabbar-buffer-groups
+        (list
+         (cond
+          ((= (aref (buffer-name) 0) ?*)
+           "Emacs")
+          ((or (memq major-mode '(dired-mode
+                                  eshell-mode
+                                  shell-mode
+                                  occur-mode
+                                  grep-mode
+                                  compilation-mode)))
+           "Utils")
+          (t
+           "Files"
+           ))))
+  (if (and (featurep 'frame-bufs)
+           frame-bufs-mode
+           (memq (current-buffer) (frame-bufs-buffer-list (selected-frame))))
+      (symbol-value 'last-tabbar-ruler-tabbar-buffer-groups)))
+
+;;  (eval-after-load "frame-bufs"
+;;    `(progn
+;;       ;;(fset 'bmz/tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
+;;       (setq tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
+;;       ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
