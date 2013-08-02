@@ -89,7 +89,7 @@
 ;; a particular tabbar-buffer-group based upon "buffer-name", then
 ;; *scratch* will appear in the tab group for text-mode files.
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
-  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*")
+  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; The list of buffers put in tabs is provided by the function
@@ -228,7 +228,7 @@
 ;;       "system")
 
     ((member (buffer-name)
-      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"))
+      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"))
         "system")
 
     ((eq major-mode 'dired-mode)
@@ -302,7 +302,6 @@
                       (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
                     )
                     ;; else
-                    (sound)
                     (message "(car group):  %s" (car group))
                     (and (eq header-line-format tabbar-header-line-format)
                       (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
@@ -424,13 +423,13 @@
       )
       ;; then
       (progn
-        (set-frame-name "SYSTEM")
         (toggle-frame-maximized)
+        (set-frame-name "SYSTEM")
       )
       ;; else
         (new-frame)
-        (set-frame-name "SYSTEM")
-        (toggle-frame-maximized) )
+        (toggle-frame-maximized)
+        (set-frame-name "SYSTEM") )
 
     (get-group "system")
   )
@@ -456,13 +455,13 @@
       )
       ;; then
       (progn
-        (set-frame-name "MAIN")
         (toggle-frame-maximized)
+        (set-frame-name "MAIN")
       )
       ;; else
         (new-frame)
-        (set-frame-name "MAIN")
-        (toggle-frame-maximized) )
+        (toggle-frame-maximized)
+        (set-frame-name "MAIN") )
     (get-group "main")
   )
 )
@@ -487,13 +486,13 @@
       )
       ;; then
       (progn
-        (set-frame-name "ORG")
         (toggle-frame-maximized)
+        (set-frame-name "ORG")
       )
       ;; else
         (new-frame)
-        (set-frame-name "ORG")
-        (toggle-frame-maximized) )
+        (toggle-frame-maximized)
+        (set-frame-name "ORG") )
     (get-group "org")
   )
 )
@@ -518,13 +517,13 @@
       )
       ;; then
       (progn
-        (set-frame-name "WANDERLUST")
         (toggle-frame-maximized)
+        (set-frame-name "WANDERLUST")
       )
       ;; else
         (new-frame)
-        (set-frame-name "WANDERLUST")
-        (toggle-frame-maximized) )
+        (toggle-frame-maximized)
+        (set-frame-name "WANDERLUST") )
     (get-group "wanderlust")
   )
 )
@@ -676,16 +675,13 @@
 ;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
 ;; These functions are NOT needed to associate tab groups with specific frames.  The source
 ;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
-;; If the user wishes to install frame-bufs with a current version of Emacs, then advanced
-;; Emacs source building skills are required because frame-bufs was written around the time
-;; of Emacs 23.4, and buff-menu.el is hard-coded into the executable of Emacs during the build --
-;; it is next to impossible to modify buff-menu afterwards unless it was omitted from build:
-;; a.  Remove contents of .../lisp/buff-menu.el before building Emacs, and leave the empty file.
-;; b.  After building, install buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
-;;     and put (provide 'buff-menu) at the bottom of the file and place it in the load path.  Then,
-;;     it will need to be required when loading Emacs -- i.e., (require 'buff-menu).  Of course,
-;;     the user will lose the benefits of recent improvements to buff-menu.el unless other
-;;     modifications are made.
+;; If the user wishes to install frame-bufs with a current version of Emacs, then a custom
+;; build will be required because frame-bufs was written around the time of Emacs 23.4,
+;; and buff-menu.el is hard-coded into the executable of Emacs during the build process:
+;; a.  Before building from source, replace the current version of .../lisp/buff-menu.el with
+;;     .../lisp/buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
+;; b.  Then, build the application.  Of course, the user will lose the benefits of recent
+;;     improvements to buff-menu.el (post-23.4) unless other modifications are made.
 
 (defun ido-frame-bufs-switch-buffer ()
   "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
