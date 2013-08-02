@@ -23,7 +23,7 @@
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)]       'tabbar-forward-group) 
 
-(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) ))) ;;  
+(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
