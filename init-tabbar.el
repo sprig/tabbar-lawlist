@@ -56,7 +56,7 @@
 
 (add-hook 'emacs-startup-hook
   (lambda ()
-(frames-and-tab-groups) ;; needed if desktop restores a file to a tab group other than "common".
+(frames-and-tab-groups) ;; needed if desktop restores a file to a tab group other than "system".
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
