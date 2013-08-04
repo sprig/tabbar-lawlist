@@ -22,17 +22,42 @@
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)]       'tabbar-forward-group) 
-
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
 ;; a kill-buffer-hook, I linked the manual refresh to a define-key function that kills
 ;; a buffer -- an empty frame will be deleted if there are no tab groups remaining.
+
 (add-hook 'find-file-hook
   (lambda()
     (frames-and-tab-groups)
   ))
+
+(add-hook 'org-agenda-mode-hook
+  (lambda ()
+    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-draft-mode-hook
+  (lambda ()
+    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-summary-mode-hook
+  (lambda ()
+    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-folder-mode-hook
+  (lambda ()
+    (frames-and-tab-groups)
+  ))
+
+(add-hook 'emacs-startup-hook
+  (lambda ()
+(frames-and-tab-groups) ;; needed if desktop restores a file to a tab group other than "common".
+))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -43,12 +68,12 @@
 (tabbar-display-update) ;; refresh
 (message "---------------------- tabbar-info ---------------------")
 (message "Tab - Focus:  %s" (tabbar-selected-tab tabbar-current-tabset))
-(message "Tabs - Focus:  %s" (tabbar-tabs tabbar-current-tabset))
+(message "Tabs Group Focus:  %s" (tabbar-tabs tabbar-current-tabset))
 (message "Group - Focus:  %s" tabbar-current-tabset)
 (message "Frame - Focus:  %s" (frame-parameter nil 'name))
 (message "All Frames:  %s" (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
 (message "Buffer - Focus:  %s" (buffer-name))
-(message "Buffers - Focus:  %s" (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
+(message "Buffers Group Focus:  %s" (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
 (message "All Groups:  %s" (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
 (message "All Tabs (Per Group) -- Focus:  %s" (tabbar-tabs (tabbar-get-tabsets-tabset)))
 (message "Focus + Next:  %s" (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
@@ -89,7 +114,8 @@
 ;; a particular tabbar-buffer-group based upon "buffer-name", then
 ;; *scratch* will appear in the tab group for text-mode files.
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
-  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*")
+  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"
+"*BUFFER LIST*" "*Help*" "*Compile-Log*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; The list of buffers put in tabs is provided by the function
@@ -116,7 +142,7 @@
 (defun tabbar-choice ()
 (interactive)
   "Switch between tabbar modes."
-  (message "Choose:  [d]efault | [c]ourt | [a]ll | [i/I]do | [f/F]rame | [v/h] Tile | [g]roups " )
+  (message "Choose:  [d]efault | [c]ourt | [a]ll | ido- [t]ab [f]rame [g]roup | [v/h] Tile | [G]roups " )
 
   (let*
 
@@ -157,26 +183,28 @@
   (sit-for 0)
   (message "You have chosen: \"everything\""))
   
-  ((?i)
-  (ido-jump-to-tab)
-  (message "You have selected ido-jump-to-tab."))
-  
-  ((?I)
+  ((?t)
   (tabbar-display-update)
   (sit-for 0)
-  (ido-jump-to-tab-group)
-  (message "You have selected ido-jump-to-tab-group."))
+  (ido-tab))
+  
+  ((?g)
+  (tabbar-display-update)
+  (sit-for 0)
+  (ido-group))
   
   ((?f)
-  (switch-to-frame)
-  (message "You have selected switch-to-frame."))
+  (tabbar-display-update)
+  (sit-for 0)
+  (ido-frame))
 
   ;; This function requires installation of frame-bufs by Al Parker and substantial
   ;; modifications if using a current version of Emacs -- see notes down below.
   ;; http://www.gnu.org/software/emacs/
   ((?F)
-  (ido-frame-bufs-switch-buffer)
-  (message "You have selected ido-frame-bufs-switch-buffer."))
+  (tabbar-display-update)
+  (sit-for 0)
+  (ido-frame-bufs))
 
   ;; requires installation of both frame-cmds and frame-fns
   ;; http://www.emacswiki.org/emacs/frame-cmds.el
@@ -194,7 +222,7 @@
   (tile-frames-horizontally)
   (message "You have selected tile-frames-vertically."))
 
-  ((?g)
+  ((?G)
   (tabbar-buffer-show-groups-toggle-switch)
   (tabbar-display-update)
   (message "All groups have been revealed."))
@@ -228,7 +256,7 @@
 ;;       "system")
 
     ((member (buffer-name)
-      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"))
+      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
         "system")
 
     ((eq major-mode 'dired-mode)
@@ -264,7 +292,7 @@
       (tabbar-buffer-show-groups nil)
     (tabbar-buffer-show-groups t) )  )
 
-(defun ido-jump-to-tab-group ()
+(defun ido-group ()
   "Jump to a tabbar group."
   (interactive)
   (if (< emacs-major-version 24)
@@ -283,7 +311,8 @@
               (when (string= group-name (format "%s" (cdr group)))
                   (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
                   (switch-to-buffer (car group)) ))
-          (tabbar-tabs tabbar-tabsets-tabset))) )
+          (tabbar-tabs tabbar-tabsets-tabset)))
+  (frames-and-tab-groups) )
 
 (defun get-group (group-name)
   "Jump to a specific tabbar group."
@@ -327,7 +356,7 @@
   )
  )
 
-(defun ido-jump-to-tab ()
+(defun ido-tab ()
   "Jump to a buffer in current tabbar group."
   (interactive)
   (if (< emacs-major-version 24)
@@ -351,22 +380,23 @@
 (make-frame)
 (set-frame-name frame-name))
 
-(defun switch-to-frame ()
+(defun ido-frame ()
   (interactive)
-  (setq frame-to (read-string (format "From: (%s) => To: %s.  Select: "
-    ;;  From:
-    (frame-parameter nil 'name)
-    ;;  To:
-    (mapcar
-      (lambda (frame) "print frame"
-        (reduce 'concat
-          (mapcar (lambda (s) (format "%s" s))
-            (list "|" (frame-parameter frame 'name) "|" )
-          )
-        )
-      )
-    (frame-list) )
-  )))
+  (setq frame-to (ido-completing-read "Select Frame:  " (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))))
+;;  (setq frame-to (read-string (format "From: (%s) => To: %s.  Select: "
+;;    ;;  From:
+;;    (frame-parameter nil 'name)
+;;    ;;  To:
+;;    (mapcar
+;;      (lambda (frame) "print frame"
+;;        (reduce 'concat
+;;          (mapcar (lambda (s) (format "%s" s))
+;;            (list "|" (frame-parameter frame 'name) "|" )
+;;          )
+;;        )
+;;      )
+;;    (frame-list) )
+;;  )))
   (setq frame-from (frame-parameter nil 'name))
   (let ((frames (frame-list)))
     (catch 'break
@@ -379,7 +409,15 @@
                 (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)
               )
             )
-            (setq frames (cdr frames)))))) ))
+            (setq frames (cdr frames)))))) )
+  (if (equal "MAIN" (frame-parameter nil 'name))
+    (get-group "main"))
+  (if (equal "SYSTEM" (frame-parameter nil 'name))
+    (get-group "system"))
+  (if (equal "ORG" (frame-parameter nil 'name))
+    (get-group "org"))
+  (if (equal "WANDERLUST" (frame-parameter nil 'name))
+    (get-group "wanderlust")))
 
 (defun frame-exists (frame-name)
   (not (eq nil (get-frame frame-name))))
@@ -589,6 +627,12 @@
 ;;  makes it extremely difficult to detect whether a frame is still associated with a
 ;;  particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to
 ;;  `tabbar-buffer-track-killed`) appears to fix this dilemma.
+;;
+;; TODO -- add an exception for when *Buffer List* (group system) is called when a different
+;; frame / group is has focus -- merely buried (or keyboard-quit...) versus killed.
+;; 
+;; TODO -- *Help* buffer -- same thing.
+;;
 (defun delete-frame-if-empty ()
 (interactive)
   (if
@@ -672,7 +716,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME BUFS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; NOTE:  There are a couple of functions that are related to using frame-bufs by Al Paker
-;; i.e., `ido-frame-bufs-switch-buffer` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
+;; i.e., `ido-frame-bufs` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
 ;; These functions are NOT needed to associate tab groups with specific frames.  The source
 ;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
 ;; If the user wishes to install frame-bufs with a current version of Emacs, then a custom
@@ -683,7 +727,7 @@
 ;; b.  Then, build the application.  Of course, the user will lose the benefits of recent
 ;;     improvements to buff-menu.el (post-23.4) unless other modifications are made.
 
-(defun ido-frame-bufs-switch-buffer ()
+(defun ido-frame-bufs ()
   "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
   Other buffers are excluded."
   (interactive)
@@ -698,7 +742,7 @@
   `(progn
      (add-hook 'frame-bufs-mode-on-hook
                #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-frame-bufs-switch-buffer)
+                   (global-set-key (kbd "C-x b") 'ido-frame-bufs)
                    (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
      (add-hook 'frame-bufs-mode-off-hook
                #'(lambda ()
