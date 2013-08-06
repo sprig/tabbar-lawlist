@@ -431,12 +431,16 @@
   "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
   Other buffers are excluded."
   (interactive)
-  (frame-bufs-mode t)
+  (if (and (featurep 'frame-bufs) frame-bufs-mode)
+    (progn
       (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
               (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
               (target (ido-completing-read "Buffer: " buffers-rotated)) )
         (switch-to-buffer target))
-    (call-interactively 'ido-switch-buffer))
+;;    (call-interactively 'ido-switch-buffer)
+     )
+    (error "\"frame-bufs-mode\" must first be enabled in order to use this function.")))
+      
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAMES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
