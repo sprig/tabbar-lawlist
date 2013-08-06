@@ -3,7 +3,7 @@
 ;; version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
 
 ;; Requires modified versions of frame-bufs and buff-menu, which are
-;; contained within the repository.
+;; contained within the repository -- consolidated into frame-bufs.el
 
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
