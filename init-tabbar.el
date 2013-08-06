@@ -1,6 +1,10 @@
 ;; init-tabbar.el
 
 ;; version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
+
+;; Requires modified versions of frame-bufs and buff-menu, which are
+;; contained within the repository.
+
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
 ;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
@@ -11,6 +15,7 @@
 ;; https://gist.github.com/Johniel/4324127
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
+;; https://github.com/alpaker/Frame-Bufs
 
 (require 'tabbar)
 (require 'frame-bufs)
@@ -27,6 +32,17 @@
 (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
 (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
 (define-key calendar-mode-map "\e\e\e" 'delete-window)
+
+(eval-after-load "frame-bufs"
+  `(progn
+     (add-hook 'frame-bufs-mode-on-hook
+               #'(lambda ()
+                   (global-set-key (kbd "C-x b") 'ido-frame-bufs)
+                   (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
+     (add-hook 'frame-bufs-mode-off-hook
+               #'(lambda ()
+                   (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
+     ))
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
@@ -410,6 +426,18 @@
         (error "'%s' does not have a visible window" buffer-name)
       (switch-to-buffer buffer-name))))
 
+
+(defun ido-frame-bufs ()
+  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
+  Other buffers are excluded."
+  (interactive)
+  (frame-bufs-mode t)
+      (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
+              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
+              (target (ido-completing-read "Buffer: " buffers-rotated)) )
+        (switch-to-buffer target))
+    (call-interactively 'ido-switch-buffer))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAMES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun lawlist-new-frame (frame-name)
@@ -759,41 +787,6 @@
 ;;      (setq z (1+ z)) ))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME BUFS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; NOTE:  There are a couple of functions that are related to using frame-bufs by Al Paker
-;; i.e., `ido-frame-bufs` and `tabbar-buffer-grouping-simple-with-frame-bufs`.
-;; These functions are NOT needed to associate tab groups with specific frames.  The source
-;; for the Al Parker code can be found here:  https://github.com/alpaker/Frame-Bufs
-;; If the user wishes to install frame-bufs with a current version of Emacs, then a custom
-;; build will be required because frame-bufs was written around the time of Emacs 23.4,
-;; and buff-menu.el is hard-coded into the executable of Emacs during the build process:
-;; a.  Before building from source, replace the current version of .../lisp/buff-menu.el with
-;;     .../lisp/buff-menu.el from Emacs version 23.4 at http://www.gnu.org/software/emacs/
-;; b.  Then, build the application.  Of course, the user will lose the benefits of recent
-;;     improvements to buff-menu.el (post-23.4) unless other modifications are made.
-
-(defun ido-frame-bufs ()
-  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
-  Other buffers are excluded."
-  (interactive)
-  (frame-bufs-mode t)
-      (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
-              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
-              (target (ido-completing-read "Buffer: " buffers-rotated)) )
-        (switch-to-buffer target))
-    (call-interactively 'ido-switch-buffer))
-
-(eval-after-load "frame-bufs"
-  `(progn
-     (add-hook 'frame-bufs-mode-on-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-frame-bufs)
-                   (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
-     (add-hook 'frame-bufs-mode-off-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
-     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
