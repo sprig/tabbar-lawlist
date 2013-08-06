@@ -13,6 +13,7 @@
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
 
 (require 'tabbar)
+(require 'frame-bufs)
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
@@ -23,6 +24,9 @@
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)]       'tabbar-forward-group) 
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
+(define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
+(define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
+(define-key calendar-mode-map "\e\e\e" 'delete-window)
 
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
@@ -64,22 +68,44 @@
 (defun tabbar-info ()
 "Diagnostic tabbar data."
 (interactive)
-(tabbar-current-tabset 't) ;; refresh
-(tabbar-display-update) ;; refresh
-(message "---------------------- tabbar-info ---------------------")
-(message "Tab - Focus:  %s" (tabbar-selected-tab tabbar-current-tabset))
-(message "Tabs Group Focus:  %s" (tabbar-tabs tabbar-current-tabset))
-(message "Group - Focus:  %s" tabbar-current-tabset)
-(message "Frame - Focus:  %s" (frame-parameter nil 'name))
-(message "All Frames:  %s" (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
-(message "Buffer - Focus:  %s" (buffer-name))
-(message "Buffers Group Focus:  %s" (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
-(message "All Groups:  %s" (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
-(message "All Tabs (Per Group) -- Focus:  %s" (tabbar-tabs (tabbar-get-tabsets-tabset)))
-(message "Focus + Next:  %s" (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
-(message "Previous:  %s" (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
-(message "--------------------------------------------------------")
-(switch-to-buffer "*Messages*"))
+  (tabbar-current-tabset 't) ;; refresh
+  (tabbar-display-update) ;; refresh
+  (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
+  (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
+  (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
+  (setq tabs-group-focus (tabbar-tabs tabbar-current-tabset))
+  (setq groups-focus tabbar-current-tabset)
+  (setq frame-focus (frame-parameter nil 'name))
+  (setq all-frames (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
+  (setq buffer-focus (buffer-name))
+  (setq buffers-group-focus (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
+  (setq all-buffers (cdr (tabbar-buffer-list)))
+  (setq all-groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
+  (setq all-tabs-per-group-focus (tabbar-tabs (tabbar-get-tabsets-tabset)))
+  (setq cdr-all-tabs-per-group-focus (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
+  (setq car-all-tabs-per-group-focus (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
+  (display-buffer "*Messages*")
+  (if (not (equal (buffer-name) "*BUFFER LIST*"))
+    (other-window 1))
+  (message "\n---------------------- tabbar-info --------------------- \n")
+  (message "Frame-Bufs Associated Frame:  %s \n" frame-bufs-associated-frame)
+  (message "Frame-Bufs Full List Frame:  %s \n" frame-bufs-full-list-frame)
+  (message "Tab - Focus:  %s \n" tab-focus)
+  (message "Tabs Group Focus:  %s \n" tabs-group-focus)
+  (message "Group - Focus:  %s \n" groups-focus)
+  (message "Frame - Focus:  %s \n" frame-focus)
+  (message "All Frames:  %s \n" all-frames)
+  (message "Buffer - Focus:  %s \n" buffer-focus)
+  (message "Buffers Group Focus:  %s \n" buffers-group-focus)
+  (message "All Buffers:  %s \n" all-buffers)
+  (message "All Groups:  %s \n" all-groups)
+  (message "All Tabs (Per Group) -- Focus:  %s \n" all-tabs-per-group-focus)
+  (message "\"cdr\" of \"All Tabs (Per Group) -- Focus\":  %s \n" cdr-all-tabs-per-group-focus)
+  (message "\"car\" of \"All Tabs (Per Group) -- Focus\":  %s \n" car-all-tabs-per-group-focus)
+  (message "-------------------------------------------------------- \n")
+  (message "Press F11 to delete-window.")
+  (message "%s" (buffer-list))
+  (scroll-down 20))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -142,7 +168,7 @@
 (defun tabbar-choice ()
 (interactive)
   "Switch between tabbar modes."
-  (message "Choose:  [d]efault | [c]ourt | [a]ll | ido- [t]ab [f]rame [g]roup | [v/h] Tile | [G]roups " )
+  (message "Choose:  [d]efault | [c]ourt | [a]ll | ido- [t/T]ab [f]rame [g]roup | [v/h] Tile | [G]roups | [F]rame-Bufs" )
 
   (let*
 
@@ -151,6 +177,7 @@
   (choice (case a
 
   ((?d)
+  (setq frame-bufs-mode nil)
   (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
@@ -160,6 +187,7 @@
   (message "You have chosen: \"primary grouping\""))
   
   ((?c)
+  (setq frame-bufs-mode nil)
   (setq tabbar-buffer-list-function 'buffer-lawlist-function)
   (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
   (define-key global-map [?\s-\`] nil)
@@ -175,6 +203,7 @@
   (message "You have chosen: \"COURT\""))
   
   ((?a)
+  (setq frame-bufs-mode nil)
   (setq tabbar-buffer-list-function 'tabbar-buffer-list)
   (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
   (define-key global-map [?\s-\~] 'tabbar-backward-tab)
@@ -201,7 +230,7 @@
   ;; This function requires installation of frame-bufs by Al Parker and substantial
   ;; modifications if using a current version of Emacs -- see notes down below.
   ;; http://www.gnu.org/software/emacs/
-  ((?F)
+  ((?T)
   (tabbar-display-update)
   (sit-for 0)
   (ido-frame-bufs))
@@ -226,65 +255,73 @@
   (tabbar-buffer-show-groups-toggle-switch)
   (tabbar-display-update)
   (message "All groups have been revealed."))
-  
-  (t (message "No changes have been made."))
 
-)))))
+  ((?F)
+  (frame-bufs-mode t)
+  (tabbar-display-update))
+  
+  (t (message "No changes have been made.")) )))))
+
 
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
   Return a list of one element based on major mode."
-  (list
-   (cond
 
-    ((or (get-buffer-process (current-buffer))
-         ;; Check if the major mode derives from `comint-mode' or
-         ;; `compilation-mode'.
+  (if (and (featurep 'frame-bufs) frame-bufs-mode)
+
+    (list
+      (cond 
+        ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
+     ;; Return `mode-name' if not blank, `major-mode' otherwise.
+     ;; Take care of preserving the match-data because this
+     ;; function is called when updating the header line.
+        (t
+          (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+            mode-name
+           (symbol-name major-mode))
+        ) ))
+
+    (list
+      (cond
+
+        ;; Check if the major mode derives from `comint-mode' or
+        ;; `compilation-mode'.
+        ((or (get-buffer-process (current-buffer))
          (tabbar-buffer-mode-derived-p
           major-mode '(comint-mode compilation-mode)))
-     "process")
+        "process")
 
-    ((eq major-mode 'org-mode)
-     "org")
-
-    ((member (buffer-name)
-      '("*TODO*" "*Org Agenda*"))
-        "org")
-
-;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
-;;       ((string-equal "*" (substring (buffer-name) 0 1))
-;;       "system")
-
-    ((member (buffer-name)
-      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
-        "system")
-
-    ((eq major-mode 'dired-mode)
-     "dired")
-
-    ((member (buffer-name)
-      '("Folder" "Summary" "Email"))
+        ((eq major-mode 'org-mode) "org")
+  
+        ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
+  
+        ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
+        ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
+  
+        ((member (buffer-name)
+        '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
+          "system")
+  
+        ((eq major-mode 'dired-mode) "dired")
+  
+        ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
+  
+        ((memq major-mode
+          '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
+          rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
+          gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
         "wanderlust")
+  
+        ((memq major-mode '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode)) "main")
 
-    ((memq major-mode
-        '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
-        rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
-        gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-     "wanderlust")
+       ;; Return `mode-name' if not blank, `major-mode' otherwise.
+       ;; Take care of preserving the match-data because this
+       ;; function is called when updating the header line.
+      (t
+        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+          mode-name
+         (symbol-name major-mode))) ))))
 
-    ((memq major-mode
-           '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode))
-     "main")
-
-    (t
-     ;; Return `mode-name' if not blank, `major-mode' otherwise.
-      (if (and (stringp mode-name)
-              ;; Take care of preserving the match-data because this
-              ;; function is called when updating the header line.
-              (save-match-data (string-match "[^ ]" mode-name)))
-         mode-name
-       (symbol-name major-mode))
-     ))))
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
@@ -596,13 +633,22 @@
 (interactive)
   (other-frame 1)
   (if (equal "MAIN" (frame-parameter nil 'name))
-    (get-group "main"))
+    (progn
+      (get-group "main")
+     ))
   (if (equal "SYSTEM" (frame-parameter nil 'name))
-    (get-group "system"))
+    (progn
+      (get-group "system")
+     ))
   (if (equal "ORG" (frame-parameter nil 'name))
-    (get-group "org"))
+    (progn
+      (get-group "org")
+    
+    ))
   (if (equal "WANDERLUST" (frame-parameter nil 'name))
-    (get-group "wanderlust")))
+    (progn
+      (get-group "wanderlust")
+     )) )
 
 (defun cycle-backward-frames-groups ()
   "Cycle to next available fame / group."
@@ -748,36 +794,6 @@
                #'(lambda ()
                    (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
      ))
-
-;;and you need to modify your 'tabbar-buffer-groups-function'
-(defun tabbar-buffer-grouping-simple-with-frame-bufs ()
-  "Return the list of group names the current buffer belongs to.
-Return a list of one element based on major mode."
-  (setq last-tabbar-ruler-tabbar-buffer-groups
-        (list
-         (cond
-          ((= (aref (buffer-name) 0) ?*)
-           "Emacs")
-          ((or (memq major-mode '(dired-mode
-                                  eshell-mode
-                                  shell-mode
-                                  occur-mode
-                                  grep-mode
-                                  compilation-mode)))
-           "Utils")
-          (t
-           "Files"
-           ))))
-  (if (and (featurep 'frame-bufs)
-           frame-bufs-mode
-           (memq (current-buffer) (frame-bufs-buffer-list (selected-frame))))
-      (symbol-value 'last-tabbar-ruler-tabbar-buffer-groups)))
-
-;;  (eval-after-load "frame-bufs"
-;;    `(progn
-;;       ;;(fset 'bmz/tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
-;;       (setq tabbar-buffer-groups-function 'tabbar-buffer-grouping-simple-with-frame-bufs)
-;;       ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
