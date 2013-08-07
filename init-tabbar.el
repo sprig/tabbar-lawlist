@@ -50,7 +50,7 @@
 ;; a buffer -- an empty frame will be deleted if there are no tab groups remaining.
 
 (add-hook 'find-file-hook
-  (lambda()
+  (lambda ()
     (frames-and-tab-groups)
   ))
 
@@ -76,7 +76,8 @@
 
 (add-hook 'emacs-startup-hook
   (lambda ()
-(frames-and-tab-groups) ;; needed if desktop restores a file to a tab group other than "system".
+    (frames-and-tab-groups)  ;; needed if desktop restores a file to a tab group other than "system".
+    ;; (refresh-frames-and-tab-groups)
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -84,8 +85,8 @@
 (defun tabbar-info ()
 "Diagnostic tabbar data."
 (interactive)
-  (tabbar-current-tabset 't) ;; refresh
-  (tabbar-display-update) ;; refresh
+;;  (tabbar-current-tabset 't) ;; refresh
+;;  (tabbar-display-update) ;; refresh
   (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
   (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
@@ -104,6 +105,8 @@
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
     (other-window 1))
   (message "\n---------------------- tabbar-info --------------------- \n")
+  (message "Buffer List:  %s \n" (frame-parameter (selected-frame) 'buffer-list))
+  (message "Buried Buffer List:  %s \n" (frame-parameter (selected-frame) 'buried-buffer-list))
   (message "Frame-Bufs Associated Frame:  %s \n" frame-bufs-associated-frame)
   (message "Frame-Bufs Full List Frame:  %s \n" frame-bufs-full-list-frame)
   (message "Tab - Focus:  %s \n" tab-focus)
@@ -273,11 +276,59 @@
   (message "All groups have been revealed."))
 
   ((?F)
+  (if (frame-exists "WANDERLUST")
+    (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
+  (if (frame-exists "SYSTEM")
+    (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
+  (if (frame-exists "MAIN")
+    (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
+  (if (frame-exists "ORG")
+    (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
   (frame-bufs-mode t)
-  (tabbar-display-update))
+  (if (frame-exists "SYSTEM")
+    (progn
+    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list system-insert)))
+    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
+    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
+     (append 
+       (frame-parameter (selected-frame) 'buffer-list)
+       (frame-parameter (selected-frame) 'buried-buffer-list)
+      '()) )))
+  (if (frame-exists "MAIN")
+    (progn
+    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list main-insert)))
+    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
+    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
+     (append 
+       (frame-parameter (selected-frame) 'buffer-list)
+       (frame-parameter (selected-frame) 'buried-buffer-list)
+      '()) )))
+  (if (frame-exists "WANDERLUST")
+    (progn
+    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list wanderlust-insert)))
+    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
+    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
+     (append 
+       (frame-parameter (selected-frame) 'buffer-list)
+       (frame-parameter (selected-frame) 'buried-buffer-list)
+      '()) )))
+  (if (frame-exists "ORG")
+    (progn
+    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
+    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
+    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
+     (append 
+       (frame-parameter (selected-frame) 'buffer-list)
+       (frame-parameter (selected-frame) 'buried-buffer-list)
+      '()) )))
+  (tabbar-display-update) )
   
   (t (message "No changes have been made.")) )))))
 
+(defvar wanderlust-insert nil)
+(defvar system-insert nil)
+(defvar main-insert nil)
+(defvar org-insert nil)
 
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
@@ -720,7 +771,7 @@
       (not (equal (buffer-name) "*bbdb*"))
       (not (equal (buffer-name) "*Messages*"))
     )
-  ;; THEN
+ ;; THEN
   (progn
     (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (kill-buffer nil)
@@ -739,8 +790,15 @@
       (and
         (equal "MAIN" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "main")))
-        (delete-frame))
-  )
+        (delete-frame)))
+        ;; deals with situation of two main (different directories) restored from desktop and then killed successively.
+;;      (progn
+;;      (refresh-frames-and-tab-groups)
+;;      (if
+;;        (and
+;;          (equal "MAIN" (frame-parameter nil 'name))
+;;          (not (equal (format "%s" tabbar-current-tabset) "main")))
+;;        (delete-frame)))))
   ;; ELSE
   (if (not (equal (buffer-name) "*Messages*"))
     ;; then
