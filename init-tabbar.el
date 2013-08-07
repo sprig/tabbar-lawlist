@@ -757,10 +757,7 @@
 ;;  particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to
 ;;  `tabbar-buffer-track-killed`) appears to fix this dilemma.
 ;;
-;; TODO -- add an exception for when *Buffer List* (group system) is called when a different
-;; frame / group is has focus -- merely buried (or keyboard-quit...) versus killed.
-;; 
-;; TODO -- *Help* buffer -- same thing.
+;; *** TODO -- add code to handle frame-bufs-mode
 ;;
 (defun delete-frame-if-empty ()
 (interactive)
@@ -778,16 +775,19 @@
     (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (if
       (and
+        (not ((featurep 'frame-bufs) frame-bufs-mode))
         (equal "WANDERLUST" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
         (delete-frame))
     (if
       (and
+        (not ((featurep 'frame-bufs) frame-bufs-mode))
         (equal "ORG" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "org")))
         (delete-frame))
     (if
       (and
+        (not ((featurep 'frame-bufs) frame-bufs-mode))
         (equal "MAIN" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "main")))
         (delete-frame)))
