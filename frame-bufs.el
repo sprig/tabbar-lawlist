@@ -33,12 +33,9 @@ called with no argument, act on the selected frame."
      (append 
        (frame-parameter frame 'buffer-list)
        (frame-parameter frame 'buried-buffer-list)
-      '()) )
-(message "buffer-list:  %s"  (buffer-list) )
-(message "(frame-parameter frame 'buffer-list):  %s" (frame-parameter frame 'buffer-list))
-(message "(frame-parameter frame 'burried-buffer-list):  %s" (frame-parameter frame 'burried-buffer-list))
-(message "(frame-bufs-buffer-list (selected-frame)):  %s" (frame-bufs-buffer-list (selected-frame)))
-(message "(frame-parameter frame 'frame-bufs-buffer-list):  %s" (frame-parameter frame 'frame-bufs-buffer-list)) )
+      '()) ) 
+  (revert-buffer)
+  (tabbar-display-update) )
 
 
 (defun frame-bufs-buffer-list (frame &optional full)
@@ -65,7 +62,6 @@ itself."
           (frame-parameter frame 'frame-bufs-buffer-list))))
      ;; Return the associated-buffer list, sorted appropriately for this frame.
      (frame-bufs-sort-buffers frame (frame-parameter frame 'frame-bufs-buffer-list)))))
-
 
 
 (defun frame-bufs-reset-all-frames ()
@@ -641,6 +637,67 @@ variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
     (message "Per-frame buffer menus are disabled"))
   (run-mode-hooks 'frame-bufs-mode-hook))
 
+;; Set the buffer predicate.  If ON is non-nil, set the buffer-predicate to
+;; our buffer predicate, and also save any existing buffer predicate so we
+;; can check that too when our buffer predicate is called (as opposed to
+;; quashing the existing buffer predicate).  If ON is nil, remove our
+;; buffer predicate if present and restore any saved buffer predicate.
+(defun frame-bufs-set-buffer-predicate (frame on)
+  (let ((buffer-pred  (frame-parameter frame 'buffer-predicate)))
+    (if on
+        (unless (eq buffer-pred 'frame-bufs-ok-to-display-p)
+          (set-frame-parameter frame
+                               'frame-bufs-saved-buffer-pred
+                               buffer-pred)
+          (set-frame-parameter frame 
+                               'buffer-predicate 
+                               'frame-bufs-ok-to-display-p))
+      (when (eq buffer-pred 'frame-bufs-ok-to-display-p)
+        (set-frame-parameter frame 
+                             'buffer-predicate 
+                             (frame-parameter frame 'frame-bufs-saved-buffer-predicate))
+        (set-frame-parameter frame 
+                             'frame-bufs-saved-buffer-predicate 
+                             nil)))))
+
+;;; ---------------------------------------------------------------------
+;;; Associated-Buffer List Maintenance and Manipulation
+;;; ---------------------------------------------------------------------
+
+;; Called by window-configuration-change-hook to update the associated-buffer
+;; list.
+(defun frame-bufs-window-change ()
+  (let ((frame (selected-frame)))
+    (dolist (win (window-list frame 'no-minibuf))
+      (let ((buf (window-buffer win)))
+        ;; If merely displayed buffers are ok add buf.  If not, add buf if
+        ;; it's been selected on the frame.
+        (when (or frame-bufs-include-displayed-buffers
+                  (memq buf (frame-parameter frame 'buffer-list))
+                  (memq buf (frame-parameter frame 'buried-buffer-list)))
+          (frame-bufs-add-buffer buf frame))))))
+
+(defun frame-bufs-remove-buffer (buf frame)
+  "Remove BUF from FRAME's associated-buffer list."
+  (set-frame-parameter frame
+                       'frame-bufs-buffer-list
+                       (delq buf (frame-parameter frame 'frame-bufs-buffer-list))))
+
+(defun frame-bufs-add-buffer (buf frame)
+  "Add BUF to FRAME's associated-buffer list if not already present."
+  (unless (bufferp buf)
+    (signal 'wrong-type-argument (list 'bufferp buf)))
+  (let ((associated-bufs (frame-parameter frame 'frame-bufs-buffer-list)))
+    (unless (memq buf associated-bufs)
+      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs)))))
+
+(defun frame-bufs-add-buffers (bufs frame)
+  "Add each member of BUFS to FRAME's associated-buffer list if it not
+already present."
+  (dolist (buf bufs)
+    (frame-bufs-add-buffer buf frame)))
+
+
 ;;; ---------------------------------------------------------------------
 ;;; Frame Initialization and Clean Up
 ;;; ---------------------------------------------------------------------
@@ -652,13 +709,14 @@ variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
 ;; frame-bufs had previously been enabled and is now being re-enabled, we
 ;; don't overwrite the existing associated list, but just add to it.
 (defun frame-bufs-initialize-existing-frame (frame)
-  (frame-bufs-add-buffers (append ;; (frame-parameter frame 'buffer-list)
+(frame-bufs-add-buffers (append ;; (frame-parameter frame 'buffer-list)
                                   ;; (frame-parameter frame 'buried-buffer-list)
-                                  (if frame-bufs-include-displayed-buffers
-                                      (mapcar #'(lambda (x) (window-buffer x))
-                                              (window-list frame 'no-minibuf)))
-)
-                          frame))
+                             (if frame-bufs-include-displayed-buffers
+                            (mapcar #'(lambda (x) (window-buffer x))
+                             (window-list frame 'no-minibuf)))
+  ;; (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))
+                         )
+                         frame))
 
 ;; The next three functions handle initialization of the associated-buffer
 ;; list for newly created frames.  The procedure is as follows: 
@@ -727,67 +785,6 @@ variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
           frame-bufs-parent-buffer-list nil
           frame-bufs-init-buffer nil
           frame-bufs-prev-buffers nil)))
-
-;; Set the buffer predicate.  If ON is non-nil, set the buffer-predicate to
-;; our buffer predicate, and also save any existing buffer predicate so we
-;; can check that too when our buffer predicate is called (as opposed to
-;; quashing the existing buffer predicate).  If ON is nil, remove our
-;; buffer predicate if present and restore any saved buffer predicate.
-(defun frame-bufs-set-buffer-predicate (frame on)
-  (let ((buffer-pred  (frame-parameter frame 'buffer-predicate)))
-    (if on
-        (unless (eq buffer-pred 'frame-bufs-ok-to-display-p)
-          (set-frame-parameter frame
-                               'frame-bufs-saved-buffer-pred
-                               buffer-pred)
-          (set-frame-parameter frame 
-                               'buffer-predicate 
-                               'frame-bufs-ok-to-display-p))
-      (when (eq buffer-pred 'frame-bufs-ok-to-display-p)
-        (set-frame-parameter frame 
-                             'buffer-predicate 
-                             (frame-parameter frame 'frame-bufs-saved-buffer-predicate))
-        (set-frame-parameter frame 
-                             'frame-bufs-saved-buffer-predicate 
-                             nil)))))
-
-;;; ---------------------------------------------------------------------
-;;; Associated-Buffer List Maintenance and Manipulation
-;;; ---------------------------------------------------------------------
-
-;; Called by window-configuration-change-hook to update the associated-buffer
-;; list.
-(defun frame-bufs-window-change ()
-  (let ((frame (selected-frame)))
-    (dolist (win (window-list frame 'no-minibuf))
-      (let ((buf (window-buffer win)))
-        ;; If merely displayed buffers are ok add buf.  If not, add buf if
-        ;; it's been selected on the frame.
-        (when (or frame-bufs-include-displayed-buffers
-                  (memq buf (frame-parameter frame 'buffer-list))
-                  (memq buf (frame-parameter frame 'buried-buffer-list)))
-          (frame-bufs-add-buffer buf frame))))))
-
-(defun frame-bufs-remove-buffer (buf frame)
-  "Remove BUF from FRAME's associated-buffer list."
-  (set-frame-parameter frame
-                       'frame-bufs-buffer-list
-                       (delq buf (frame-parameter frame 'frame-bufs-buffer-list))))
-
-(defun frame-bufs-add-buffer (buf frame)
-  "Add BUF to FRAME's associated-buffer list if not already present."
-  (unless (bufferp buf)
-    (signal 'wrong-type-argument (list 'bufferp buf)))
-  (let ((associated-bufs (frame-parameter frame 'frame-bufs-buffer-list)))
-    (unless (memq buf associated-bufs)
-      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs)))))
-
-(defun frame-bufs-add-buffers (bufs frame)
-  "Add each member of BUFS to FRAME's associated-buffer list if it not
-already present."
-  (dolist (buf bufs)
-    (frame-bufs-add-buffer buf frame)))
-
 
 ;;; ---------------------------------------------------------------------
 ;;; Utilities and Predicates
@@ -1265,7 +1262,7 @@ Auto Revert Mode.")
 
 (defvar buff-menu-mode-map
   (let ((map (make-keymap))
-  (menu-map (make-sparse-keymap)))
+	(menu-map (make-sparse-keymap)))
     (suppress-keymap map t)
     (define-key map "v" 'buff-menu-select)
     (define-key map "2" 'buff-menu-2-window)
