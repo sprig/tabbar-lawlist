@@ -775,19 +775,19 @@
     (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (if
       (and
-        (not ((featurep 'frame-bufs) frame-bufs-mode))
+        (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "WANDERLUST" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
         (delete-frame))
     (if
       (and
-        (not ((featurep 'frame-bufs) frame-bufs-mode))
+        (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "ORG" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "org")))
         (delete-frame))
     (if
       (and
-        (not ((featurep 'frame-bufs) frame-bufs-mode))
+        (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "MAIN" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "main")))
         (delete-frame)))
