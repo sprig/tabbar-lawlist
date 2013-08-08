@@ -33,10 +33,14 @@ called with no argument, act on the selected frame."
      (append 
        (frame-parameter frame 'buffer-list)
        (frame-parameter frame 'buried-buffer-list)
-      '()) ) 
-  (revert-buffer)
-  (tabbar-display-update) )
+      '()) ) )
 
+(defun frame-bufs-reset-all-frames ()
+  "Reset the associated-buffer list of all frames.
+Call `frame-bufs-reset-frame' on all live frames."
+  (interactive)
+  (dolist (frame (frame-list))
+    (frame-bufs-reset-frame frame)))
 
 (defun frame-bufs-buffer-list (frame &optional full)
   "When called with argument FULL non-nil, return the same result
@@ -62,14 +66,6 @@ itself."
           (frame-parameter frame 'frame-bufs-buffer-list))))
      ;; Return the associated-buffer list, sorted appropriately for this frame.
      (frame-bufs-sort-buffers frame (frame-parameter frame 'frame-bufs-buffer-list)))))
-
-
-(defun frame-bufs-reset-all-frames ()
-  "Reset the associated-buffer list of all frames.
-Call `frame-bufs-reset-frame' on all live frames."
-  (interactive)
-  (dolist (frame (frame-list))
-    (frame-bufs-reset-frame frame)))
 
 
 (unless (featurep 'buff-menu+)
@@ -708,13 +704,26 @@ already present."
 ;; buffers as well, we grab all the currently displayed buffers.  If
 ;; frame-bufs had previously been enabled and is now being re-enabled, we
 ;; don't overwrite the existing associated list, but just add to it.
+;;
+;; NOTE:  tabbar-mode (without frame-bufs-mode) does not use the buffer-list
+;; with respect to frame association.  When frame-bufs-mode is activated, the
+;; following function reads the existing buffer-list in each frame in order
+;; to associate those buffers with `frame-bufs-buffer-list`.  However, said
+;; function is run on each frame AFTER frame-bufs-mode has been activated --
+;; which is too late to take a read of the tab groups that were displayed
+;; on each frame with the help of `init-tabbar.el`.  So, a read of the tab
+;; groups on each frame needs to be taken and preserved with a variable
+;; BEFORE frame-bufs-mode is activated -- the following code is used elsewhere:
+;; (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))
+;;
 (defun frame-bufs-initialize-existing-frame (frame)
-(frame-bufs-add-buffers (append ;; (frame-parameter frame 'buffer-list)
-                                  ;; (frame-parameter frame 'buried-buffer-list)
-                             (if frame-bufs-include-displayed-buffers
-                            (mapcar #'(lambda (x) (window-buffer x))
-                             (window-list frame 'no-minibuf)))
-  ;; (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))
+(frame-bufs-add-buffers
+  (append
+    (frame-parameter frame 'buffer-list)
+    (frame-parameter frame 'buried-buffer-list)
+    (if frame-bufs-include-displayed-buffers
+      (mapcar #'(lambda (x) (window-buffer x))
+      (window-list frame 'no-minibuf)))
                          )
                          frame))
 
