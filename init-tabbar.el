@@ -23,7 +23,7 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
-(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-and-tab-groups)))) ;; manual refresh
+(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-and-tab-groups))))
 (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
 (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
@@ -31,7 +31,9 @@
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
 (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
 (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
-(define-key calendar-mode-map "\e\e\e" 'delete-window)
+(define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
+
+
 
 (eval-after-load "frame-bufs"
   `(progn
@@ -57,6 +59,7 @@
 (add-hook 'org-agenda-mode-hook
   (lambda ()
     (frames-and-tab-groups)
+    (org-defkey org-agenda-mode-map "\e\e\e" 'delete-window)
   ))
 
 (add-hook 'wl-draft-mode-hook
@@ -77,7 +80,6 @@
 (add-hook 'emacs-startup-hook
   (lambda ()
     (frames-and-tab-groups)  ;; needed if desktop restores a file to a tab group other than "system".
-    ;; (refresh-frames-and-tab-groups)
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -91,7 +93,7 @@
   (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
   (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
   (setq tabs-group-focus (tabbar-tabs tabbar-current-tabset))
-  (setq groups-focus tabbar-current-tabset)
+  (setq group-focus tabbar-current-tabset)
   (setq frame-focus (frame-parameter nil 'name))
   (setq all-frames (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
   (setq buffer-focus (buffer-name))
@@ -111,7 +113,7 @@
   (message "Frame-Bufs Full List Frame:  %s \n" frame-bufs-full-list-frame)
   (message "Tab - Focus:  %s \n" tab-focus)
   (message "Tabs Group Focus:  %s \n" tabs-group-focus)
-  (message "Group - Focus:  %s \n" groups-focus)
+  (message "Group - Focus:  %s \n" group-focus)
   (message "Frame - Focus:  %s \n" frame-focus)
   (message "All Frames:  %s \n" all-frames)
   (message "Buffer - Focus:  %s \n" buffer-focus)
@@ -184,151 +186,129 @@
   tabs
   (cons cur-buf tabs))))
 
-(defun tabbar-choice ()
-(interactive)
-  "Switch between tabbar modes."
-  (message "Choose:  [d]efault | [c]ourt | [a]ll | ido- [t/T]ab [f]rame [g]roup | [v/h] Tile | [G]roups | [F]rame-Bufs" )
-
-  (let*
-
-  ( (a (read-char-exclusive))
-
-  (choice (case a
-
-  ((?d)
-  (setq frame-bufs-mode nil)
-  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-  (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-  (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
-  (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
-  (tabbar-display-update)
-  (sit-for 0)
-  (message "You have chosen: \"primary grouping\""))
-  
-  ((?c)
-  (setq frame-bufs-mode nil)
-  (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-  (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-  (define-key global-map [?\s-\`] nil)
-  (define-key global-map [?\s-\`] (function (lambda () (interactive)
-    (if (equal "MAIN" (frame-parameter nil 'name))
-      (progn
-        (get-frame "ORG")
-        (get-group "org"))
-      (get-frame "MAIN")
-      (get-group "main")))))
-  (tabbar-display-update)
-  (sit-for 0)
-  (message "You have chosen: \"COURT\""))
-  
-  ((?a)
-  (setq frame-bufs-mode nil)
-  (setq tabbar-buffer-list-function 'tabbar-buffer-list)
-  (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
-  (define-key global-map [?\s-\~] 'tabbar-backward-tab)
-  (define-key global-map [?\s-\`] 'tabbar-forward-tab)
-  (tabbar-display-update)
-  (sit-for 0)
-  (message "You have chosen: \"everything\""))
-  
-  ((?t)
-  (tabbar-display-update)
-  (sit-for 0)
-  (ido-tab))
-  
-  ((?g)
-  (tabbar-display-update)
-  (sit-for 0)
-  (ido-group))
-  
-  ((?f)
-  (tabbar-display-update)
-  (sit-for 0)
-  (ido-frame))
-
-  ;; This function requires installation of frame-bufs by Al Parker and substantial
-  ;; modifications if using a current version of Emacs -- see notes down below.
-  ;; http://www.gnu.org/software/emacs/
-  ((?T)
-  (tabbar-display-update)
-  (sit-for 0)
-  (ido-frame-bufs))
-
-  ;; requires installation of both frame-cmds and frame-fns
-  ;; http://www.emacswiki.org/emacs/frame-cmds.el
-  ;; http://www.emacswiki.org/emacs/frame-fns.el
-  ((?v)
-  (refresh-frames-and-tab-groups)
-  (tile-frames-vertically)
-  (message "You have selected tile-frames-vertically."))
-
-  ;; requires installation of both frame-cmds and frame-fns
-  ;; http://www.emacswiki.org/emacs/frame-cmds.el
-  ;; http://www.emacswiki.org/emacs/frame-fns.el
-  ((?h)
-  (refresh-frames-and-tab-groups)
-  (tile-frames-horizontally)
-  (message "You have selected tile-frames-vertically."))
-
-  ((?G)
-  (tabbar-buffer-show-groups-toggle-switch)
-  (tabbar-display-update)
-  (message "All groups have been revealed."))
-
-  ((?F)
-  (if (frame-exists "WANDERLUST")
-    (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
-  (if (frame-exists "SYSTEM")
-    (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
-  (if (frame-exists "MAIN")
-    (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
-  (if (frame-exists "ORG")
-    (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))))
-  (frame-bufs-mode t)
-  (if (frame-exists "SYSTEM")
-    (progn
-    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list system-insert)))
-    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
-    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
-     (append 
-       (frame-parameter (selected-frame) 'buffer-list)
-       (frame-parameter (selected-frame) 'buried-buffer-list)
-      '()) )))
-  (if (frame-exists "MAIN")
-    (progn
-    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list main-insert)))
-    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
-    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
-     (append 
-       (frame-parameter (selected-frame) 'buffer-list)
-       (frame-parameter (selected-frame) 'buried-buffer-list)
-      '()) )))
-  (if (frame-exists "WANDERLUST")
-    (progn
-    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list wanderlust-insert)))
-    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
-    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
-     (append 
-       (frame-parameter (selected-frame) 'buffer-list)
-       (frame-parameter (selected-frame) 'buried-buffer-list)
-      '()) )))
-  (if (frame-exists "ORG")
-    (progn
-    (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
-    (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))
-    (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
-     (append 
-       (frame-parameter (selected-frame) 'buffer-list)
-       (frame-parameter (selected-frame) 'buried-buffer-list)
-      '()) )))
-  (tabbar-display-update) )
-  
-  (t (message "No changes have been made.")) )))))
-
 (defvar wanderlust-insert nil)
 (defvar system-insert nil)
 (defvar main-insert nil)
 (defvar org-insert nil)
+(defun tabbar-choice ()
+(interactive)
+  "Different choices relating to tab groups, frame-bufs-mode, and the like."
+  (message "Choose:  [F]rame-Bufs | [d]efault | [c]ourt | [a]ll | ido- [t/T]ab [f]rame [g]roup | [v/h] Tile | [G]roups" )
+  (let* (
+    (a (read-char-exclusive))
+    (choice (case a
+      ((?d)
+        (setq frame-bufs-mode nil)
+        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
+        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
+        (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
+        (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
+;;        (refresh-frames-and-tab-groups)
+        (message "You have chosen: \"primary grouping\"") )
+      ((?c)
+        (setq frame-bufs-mode nil)
+        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
+        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
+        (define-key global-map [?\s-\`] nil)
+        (define-key global-map [?\s-\`] (function (lambda () (interactive)
+          (if (equal "MAIN" (frame-parameter nil 'name))
+            (progn
+              (get-frame "ORG")
+              (get-group "org"))
+            (get-frame "MAIN")
+            (get-group "main")))))
+;;        (refresh-frames-and-tab-groups)
+        (message "You have chosen: \"COURT\""))
+      ((?a)
+        (setq frame-bufs-mode nil)
+        (setq tabbar-buffer-list-function 'tabbar-buffer-list)
+        (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
+        (define-key global-map [?\s-\~] 'tabbar-backward-tab)
+        (define-key global-map [?\s-\`] 'tabbar-forward-tab)
+        (get-frame "SYSTEM")
+        (tabbar-display-update)
+        (sit-for 0)
+        (message "You have chosen: \"everything\""))
+      ((?t)
+        (tabbar-display-update)
+        (sit-for 0)
+        (ido-tab))
+      ((?g)
+        (tabbar-display-update)
+        (sit-for 0)
+        (ido-group))
+      ((?f)
+        (tabbar-display-update)
+        (sit-for 0)
+        (ido-frame))
+      ((?v)
+        ;; requires installation of both frame-cmds and frame-fns
+        ;; http://www.emacswiki.org/emacs/frame-cmds.el
+        ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (tile-frames-vertically)
+        (refresh-frames-and-tab-groups)) ;; get-group is responsible for sometimes choosing the wrong tab
+      ((?h)
+        ;; requires installation of both frame-cmds and frame-fns
+        ;; http://www.emacswiki.org/emacs/frame-cmds.el
+        ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (tile-frames-horizontally)
+        (refresh-frames-and-tab-groups)) ;; get-group is responsible for sometimes choosing the wrong tab
+      ((?T)
+        ;; This function requires installation of frame-bufs by Al Parker and substantial
+        ;; modifications if using a current version of Emacs -- see notes down below.
+        ;; http://www.gnu.org/software/emacs/
+        (tabbar-display-update)
+        (sit-for 0)
+        (ido-frame-bufs))
+      ((?F)
+        ;; This function requires installation of frame-bufs by Al Parker and substantial
+        ;; modifications if using a current version of Emacs -- see notes down below.
+        ;; http://www.gnu.org/software/emacs/
+        ;;
+        ;; This code can be used to reset / modify the `frame-bufs-buffer-list`
+        ;; AFTER frame-bufs-mode has been activated -- it requires modification
+        ;; of the buffer-list on each frame with: (mapcar 'tabbar-tab-value
+        ;; (tabbar-tabs (tabbar-current-tabset t)))
+        ;;
+        ;; (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
+        ;;  (append 
+        ;;    (frame-parameter (selected-frame) 'buffer-list)
+        ;;    (frame-parameter (selected-frame) 'buried-buffer-list)
+        ;;   '()) )
+        ;;
+        (setq current-frame (frame-parameter nil 'name))
+        (if (frame-exists "WANDERLUST")
+          (progn
+          (get-group "wanderlust")
+          (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
+          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list wanderlust-insert)))
+          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+        (if (frame-exists "SYSTEM")
+          (progn
+          (get-group "system")
+          (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
+          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list system-insert)))
+          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+        (if (frame-exists "MAIN")
+          (progn
+          (get-group "main")
+          (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
+          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list main-insert)))
+          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+        (if (frame-exists "ORG")
+          (progn
+          (get-group "org")
+          (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
+          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
+          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+        (frame-bufs-mode t)
+        (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
+        (tabbar-display-update)
+        (get-frame current-frame) )
+      ((?G)
+        (tabbar-buffer-show-groups-toggle-switch)
+        (tabbar-display-update))
+      (t (message "No changes have been made.")) )))))
 
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
@@ -494,11 +474,6 @@
       
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAMES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun lawlist-new-frame (frame-name)
-(interactive "sSelect a frame name: ")
-(make-frame)
-(set-frame-name frame-name))
 
 (defun ido-frame ()
   (interactive)
@@ -709,7 +684,9 @@
   (get-frame "SYSTEM") (get-group "system")
   (get-frame "MAIN") (get-group "main")
   (get-frame "ORG") (get-group "org")
-  (get-frame current-frame))
+  (get-frame current-frame)
+  (tabbar-display-update)
+  (sit-for 0))
 
 (defun cycle-forward-frames-groups ()
   "Cycle to next available fame / group."
@@ -764,41 +741,53 @@
   (if
     (and
       (not (equal "SYSTEM" (frame-parameter nil 'name))) ;; CONSIDER USING ONLY THIS CONDITION
-      (not (equal (buffer-name) "*scratch*"))
-      (not (equal (buffer-name) "*bbdb*"))
-      (not (equal (buffer-name) "*Messages*"))
+;;      (not (equal (buffer-name) "*scratch*"))
+;;      (not (equal (buffer-name) "*bbdb*"))
+;;      (not (equal (buffer-name) "*Messages*"))
     )
  ;; THEN
   (progn
     (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
+    (setq group-focus tabbar-current-tabset)
     (kill-buffer nil)
+    (get-group group-focus)
     (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (if
       (and
         (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "WANDERLUST" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
-        (delete-frame))
+      (progn
+      (get-group "wanderlust")
+      (if
+        (and
+          (equal "WANDERLUST" (frame-parameter nil 'name))
+          (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
+        (delete-frame))))
     (if
       (and
         (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "ORG" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "org")))
-        (delete-frame))
+      (progn
+      (get-group "org")
+      (if
+        (and
+          (equal "ORG" (frame-parameter nil 'name))
+          (not (equal (format "%s" tabbar-current-tabset) "org")))
+        (delete-frame))))
     (if
       (and
         (not (and (featurep 'frame-bufs) frame-bufs-mode))
         (equal "MAIN" (frame-parameter nil 'name))
         (not (equal (format "%s" tabbar-current-tabset) "main")))
-        (delete-frame)))
-        ;; deals with situation of two main (different directories) restored from desktop and then killed successively.
-;;      (progn
-;;      (refresh-frames-and-tab-groups)
-;;      (if
-;;        (and
-;;          (equal "MAIN" (frame-parameter nil 'name))
-;;          (not (equal (format "%s" tabbar-current-tabset) "main")))
-;;        (delete-frame)))))
+      (progn
+      (get-group "main")
+      (if
+        (and
+          (equal "MAIN" (frame-parameter nil 'name))
+          (not (equal (format "%s" tabbar-current-tabset) "main")))
+        (delete-frame)))) )
   ;; ELSE
   (if (not (equal (buffer-name) "*Messages*"))
     ;; then
