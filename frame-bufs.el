@@ -1,3 +1,7 @@
+;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
+;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
+;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
+
 ;;  (setq frame-bufs-mode t)
 
 ;; NOTE:  (frame-bufs-initialize-existing-frame frame) is needed
