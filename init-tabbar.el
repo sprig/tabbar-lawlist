@@ -17,8 +17,13 @@
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
 ;; https://github.com/alpaker/Frame-Bufs
 
+;; REFRESH TABBAR
+;; (tabbar-current-tabset 't)
+;; (tabbar-display-update)
+;; (sit-for 0)
+
 (require 'tabbar)
-(require 'frame-bufs) ;; use the modified version in the lawlist repository
+(require 'frame-bufs) ;; Use the modified version in the lawlist repository.
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
@@ -34,7 +39,7 @@
 (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
 
 
-;; Users will need to add additional hooks for specific modes that do not open files
+;; Add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.
 
 (add-hook 'find-file-hook
@@ -64,7 +69,7 @@
 
 (add-hook 'emacs-startup-hook
   (lambda ()
-    (frames-and-tab-groups)  ;; needed if desktop restores a file to a tab group other than "system".
+    (frames-and-tab-groups)  ;; Needed when desktop.el restores files.
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -72,8 +77,6 @@
 (defun tabbar-info ()
 "Diagnostic tabbar data."
 (interactive)
-;;  (tabbar-current-tabset 't) ;; refresh
-;;  (tabbar-display-update) ;; refresh
   (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
   (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
@@ -92,8 +95,9 @@
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
     (other-window 1))
   (message "\n---------------------- tabbar-info --------------------- \n")
-  (message "Buffer List:  %s \n" (frame-parameter (selected-frame) 'buffer-list))
-  (message "Buried Buffer List:  %s \n" (frame-parameter (selected-frame) 'buried-buffer-list))
+  (message "Selected Frame Buffer List:  %s \n" (frame-parameter (selected-frame) 'buffer-list))
+  (message "Buffer List -- all:  %s \n" (buffer-list))
+  (message "Selected Frame Buried Buffer List:  %s \n" (frame-parameter (selected-frame) 'buried-buffer-list))
   (message "Frame-Bufs Associated Frame:  %s \n" frame-bufs-associated-frame)
   (message "Frame-Bufs Full List Frame:  %s \n" frame-bufs-full-list-frame)
   (message "Tab - Focus:  %s \n" tab-focus)
@@ -109,8 +113,7 @@
   (message "\"cdr\" of \"All Tabs (Per Group) -- Focus\":  %s \n" cdr-all-tabs-per-group-focus)
   (message "\"car\" of \"All Tabs (Per Group) -- Focus\":  %s \n" car-all-tabs-per-group-focus)
   (message "-------------------------------------------------------- \n")
-  (message "Press F11 to delete-window.")
-  (message "%s" (buffer-list))
+  (message "\"M-x delete-window\" to close this window.")
   (scroll-down 20))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -692,19 +695,8 @@
   (if (equal "WANDERLUST" (frame-parameter nil 'name))
     (get-group "wanderlust")))
 
-;;  (tabbar-current-tabset 't) ;; refresh
-;;  (tabbar-display-update) ;; refresh
-;;  Tabbar 2.0 uses `tabbar-buffer-track-killed` (linked to a `kill-buffer-hook`) to cleanup
-;;  and select the post-kill buffer.  There are many buffers throughout Emacs that exist only
-;;  for a brief moment in time, which are not visible to the naked eye.  While it may be true
-;;  that `tabbar-buffer-track-killed` serves a useful purpose, it is nevertheless responsible
-;;  for setting existing tabs to groups of "nil" when a buffer is killed manually -- this
-;;  makes it extremely difficult to detect whether a frame is still associated with a
-;;  particular tab group.  Temporarily removing the `kill-buffer-hook` (linked to
-;;  `tabbar-buffer-track-killed`) appears to fix this dilemma.
-;;
+
 ;; *** TODO -- add code to handle frame-bufs-mode
-;;
 (defun delete-frame-if-empty ()
 (interactive)
   (if
@@ -719,7 +711,7 @@
     (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (setq group-focus tabbar-current-tabset)
     (kill-buffer nil)
-    (get-group group-focus)
+    (get-group group-focus) ;; The sibling portion of code from get-group is used consistently here.
     (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (if
       (and
