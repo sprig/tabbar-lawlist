@@ -20,6 +20,7 @@
   Non-null optional arg FILES-ONLY means mention only file buffers.
   For more information, see the function `buff-menu'."
 (interactive "P")
+(frame-bufs-mode t)
   (display-buffer (frame-bufs-list-buffers-noselect files-only)) ;; reversed -- INCLUDE non-files
   ;; (display-buffer (frame-bufs-list-buffers-noselect buffer-list)) ;; reversed -- EXCLUDE non-files
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
