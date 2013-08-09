@@ -372,8 +372,7 @@
 
 (defun get-group (group-name)
   "Jump to a specific tabbar group."
-  (unless (and (featurep 'tabbar)
-               tabbar-mode)
+  (unless (and (featurep 'tabbar) tabbar-mode)
     (error "Error: tabbar-mode not turned on."))
   (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh 1 of 3
   (tabbar-scroll tabbar-tabsets-tabset 0)  ;; refresh 2 of 3
@@ -381,37 +380,38 @@
   (let* ( (groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset))))
     (mapc #'(lambda (group)
               (when (string= group-name (format "%s" (cdr group)))
-                  (if (not (equal (format "%s" (car group)) "#<killed buffer>") )
-                    (progn
-                      (switch-to-buffer (car group))
-                      (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
-                    )
-                    ;; else
-                    (message "(car group):  %s" (car group))
-                    (and
-                      (eq header-line-format tabbar-header-line-format)
-                      (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
-                      (eq (current-buffer) (window-buffer (selected-window)))
-                      (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
-                            (b  (current-buffer))
-                            found sibling)
-                      (while (and bl (not found))
-                        (if (eq b (car bl))
-                          (setq found t)
-                            (setq sibling (car bl)))
-                        (setq bl (cdr bl)))
-                        (when (and (setq sibling (or (car bl) sibling))
-                              (buffer-live-p sibling))
-                          ;; Move sibling buffer in front of the buffer list.
-                          (save-current-buffer (switch-to-buffer sibling))
-                          (message "sibling:  %s" sibling))) )
-                  )
-               )
-            )
+              (setq tab-group group)
+              ) ;; end of when
+            ) ;; end of lambda
       (tabbar-tabs tabbar-tabsets-tabset)
-    )
-  )
- )
+    ) ;; end of mapc
+    (if (not (equal (format "%s" (car tab-group)) "#<killed buffer>") )
+      (progn
+        (switch-to-buffer (car tab-group))
+        (message "Switched to tab-group \"%s\", current buffer: %s" (cdr tab-group) (car tab-group))
+      )
+      ;; else
+      (message "(car tab-group):  %s" (car tab-group))
+      (and
+        (eq header-line-format tabbar-header-line-format)
+        (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
+        (eq (current-buffer) (window-buffer (selected-window)))
+        (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
+              (b  (current-buffer))
+              found sibling)
+        (while (and bl (not found))
+          (if (eq b (car bl))
+            (setq found t)
+              (setq sibling (car bl)))
+          (setq bl (cdr bl)))
+          (when (and (setq sibling (or (car bl) sibling))
+                (buffer-live-p sibling))
+            ;; Move sibling buffer in front of the buffer list.
+            (save-current-buffer (switch-to-buffer sibling))
+            (message "The buffer named \"%s\" was moved to the front of the buffer-list." sibling))) )
+    ) ;; end of if
+  ) ;; end of let
+ ) ;; end of defun
 
 (defun ido-tab ()
   "Jump to a buffer in current tabbar group."
