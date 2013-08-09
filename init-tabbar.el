@@ -206,6 +206,9 @@
             (get-frame "MAIN")
             (get-group "main")))))
         (refresh-frames-and-tab-groups)
+        (if (not (or (equal "MAIN" (frame-parameter nil 'name))
+                     (equal "ORG" (frame-parameter nil 'name))))
+          (get-frame "MAIN"))
         (message "You have chosen: \"COURT\""))
       ((?a)
         (setq frame-bufs-mode nil)
@@ -273,7 +276,14 @@
           (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
           (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
-        (frame-bufs-mode t)
+        (setq frame-bufs-mode t)
+        (setq tabbar-buffer-list-function 'tabbar-buffer-list)
+        (setq tabbar-buffer-groups-function (lambda () (list (cond 
+          ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
+          (t
+            (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+              mode-name
+                (symbol-name major-mode)) )))))
         (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
         (tabbar-display-update)
         (get-frame current-frame) )
@@ -285,61 +295,36 @@
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
   Return a list of one element based on major mode."
-
-  (if (and (featurep 'frame-bufs) frame-bufs-mode)
-
-    (list
-      (cond 
-        ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
+  (list
+    (cond
+      ;; Check if the major mode derives from `comint-mode' or
+      ;; `compilation-mode'.
+      ((or (get-buffer-process (current-buffer))
+       (tabbar-buffer-mode-derived-p
+        major-mode '(comint-mode compilation-mode)))
+      "process")
+      ((eq major-mode 'org-mode) "org")
+        ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
+        ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
+      ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
+        ((member (buffer-name)
+      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
+        "system")
+        ((eq major-mode 'dired-mode) "dired")
+        ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
+        ((memq major-mode
+        '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
+        rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
+        gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
+      "wanderlust")
+        ((memq major-mode '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode)) "main")
      ;; Return `mode-name' if not blank, `major-mode' otherwise.
      ;; Take care of preserving the match-data because this
      ;; function is called when updating the header line.
-        (t
-          (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-            mode-name
-           (symbol-name major-mode))
-        ) ))
-
-    (list
-      (cond
-
-        ;; Check if the major mode derives from `comint-mode' or
-        ;; `compilation-mode'.
-        ((or (get-buffer-process (current-buffer))
-         (tabbar-buffer-mode-derived-p
-          major-mode '(comint-mode compilation-mode)))
-        "process")
-
-        ((eq major-mode 'org-mode) "org")
-  
-        ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
-  
-        ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
-        ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
-  
-        ((member (buffer-name)
-        '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
-          "system")
-  
-        ((eq major-mode 'dired-mode) "dired")
-  
-        ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
-  
-        ((memq major-mode
-          '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
-          rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
-          gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-        "wanderlust")
-  
-        ((memq major-mode '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode)) "main")
-
-       ;; Return `mode-name' if not blank, `major-mode' otherwise.
-       ;; Take care of preserving the match-data because this
-       ;; function is called when updating the header line.
-      (t
-        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-          mode-name
-         (symbol-name major-mode))) ))))
+    (t
+      (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+        mode-name
+       (symbol-name major-mode))) )))
 
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
@@ -665,36 +650,39 @@
   "Cycle to next available fame / group."
 (interactive)
   (other-frame 1)
-  (if (equal "MAIN" (frame-parameter nil 'name))
+  (if (not (and (featurep 'frame-bufs) frame-bufs-mode))
     (progn
-      (get-group "main")
-     ))
-  (if (equal "SYSTEM" (frame-parameter nil 'name))
-    (progn
-      (get-group "system")
-     ))
-  (if (equal "ORG" (frame-parameter nil 'name))
-    (progn
-      (get-group "org")
-    
-    ))
-  (if (equal "WANDERLUST" (frame-parameter nil 'name))
-    (progn
-      (get-group "wanderlust")
-     )) )
+    (if (equal "MAIN" (frame-parameter nil 'name))
+      (progn
+        (get-group "main")
+       ))
+    (if (equal "SYSTEM" (frame-parameter nil 'name))
+      (progn
+        (get-group "system")
+       ))
+    (if (equal "ORG" (frame-parameter nil 'name))
+      (progn
+        (get-group "org")
+      
+      ))
+    (if (equal "WANDERLUST" (frame-parameter nil 'name))
+      (progn
+        (get-group "wanderlust") )))))
 
 (defun cycle-backward-frames-groups ()
   "Cycle to next available fame / group."
 (interactive)
   (other-frame -1)
-  (if (equal "MAIN" (frame-parameter nil 'name))
-    (get-group "main"))
-  (if (equal "SYSTEM" (frame-parameter nil 'name))
-    (get-group "system"))
-  (if (equal "ORG" (frame-parameter nil 'name))
-    (get-group "org"))
-  (if (equal "WANDERLUST" (frame-parameter nil 'name))
-    (get-group "wanderlust")))
+  (if (not (and (featurep 'frame-bufs) frame-bufs-mode))
+    (progn
+    (if (equal "MAIN" (frame-parameter nil 'name))
+      (get-group "main"))
+    (if (equal "SYSTEM" (frame-parameter nil 'name))
+      (get-group "system"))
+    (if (equal "ORG" (frame-parameter nil 'name))
+      (get-group "org"))
+    (if (equal "WANDERLUST" (frame-parameter nil 'name))
+      (get-group "wanderlust")))))
 
 
 ;; *** TODO -- add code to handle frame-bufs-mode
