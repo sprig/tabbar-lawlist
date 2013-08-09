@@ -1,15 +1,15 @@
 ;; init-tabbar.el
 
-;; version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
+;; Version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
 
-;; Requires modified versions of frame-bufs and buff-menu, which are
-;; contained within the repository -- consolidated into frame-bufs.el
+;; Requires modified versions of frame-bufs and buff-menu, which are consolidated and
+;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
 
 ;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
 
 ;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
 
-;; authored, in part, by lawlist -- modifying functions at the following links:
+;; Authored (in part) by lawlist -- modifying various functions found at the following links:
 ;; http://www.emacswiki.org/emacs/TabBarMode
 ;; https://github.com/bamanzi/dotemacs-full/blob/master/init.d/25-tabbar.el
 ;; https://gist.github.com/Johniel/4324127
@@ -18,7 +18,7 @@
 ;; https://github.com/alpaker/Frame-Bufs
 
 (require 'tabbar)
-(require 'frame-bufs)
+(require 'frame-bufs) ;; use the modified version in the lawlist repository
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
@@ -34,18 +34,6 @@
 (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
 
 
-
-(eval-after-load "frame-bufs"
-  `(progn
-     (add-hook 'frame-bufs-mode-on-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-frame-bufs)
-                   (global-set-key (kbd "C-x B") 'ido-switch-buffer)))
-     (add-hook 'frame-bufs-mode-off-hook
-               #'(lambda ()
-                   (global-set-key (kbd "C-x b") 'ido-switch-buffer)))
-     ))
-
 ;; Users will need to add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.  Rather than use
 ;; a kill-buffer-hook, I linked the manual refresh to a define-key function that kills
@@ -59,7 +47,6 @@
 (add-hook 'org-agenda-mode-hook
   (lambda ()
     (frames-and-tab-groups)
-    (org-defkey org-agenda-mode-map "\e\e\e" 'delete-window)
   ))
 
 (add-hook 'wl-draft-mode-hook
@@ -254,28 +241,12 @@
         (tile-frames-horizontally)
         (refresh-frames-and-tab-groups)) ;; get-group is responsible for sometimes choosing the wrong tab
       ((?T)
-        ;; This function requires installation of frame-bufs by Al Parker and substantial
-        ;; modifications if using a current version of Emacs -- see notes down below.
-        ;; http://www.gnu.org/software/emacs/
+        ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
         (sit-for 0)
         (ido-frame-bufs))
       ((?F)
-        ;; This function requires installation of frame-bufs by Al Parker and substantial
-        ;; modifications if using a current version of Emacs -- see notes down below.
-        ;; http://www.gnu.org/software/emacs/
-        ;;
-        ;; This code can be used to reset / modify the `frame-bufs-buffer-list`
-        ;; AFTER frame-bufs-mode has been activated -- it requires modification
-        ;; of the buffer-list on each frame with: (mapcar 'tabbar-tab-value
-        ;; (tabbar-tabs (tabbar-current-tabset t)))
-        ;;
-        ;; (set-frame-parameter (selected-frame) 'frame-bufs-buffer-list
-        ;;  (append 
-        ;;    (frame-parameter (selected-frame) 'buffer-list)
-        ;;    (frame-parameter (selected-frame) 'buried-buffer-list)
-        ;;   '()) )
-        ;;
+        ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (setq current-frame (frame-parameter nil 'name))
         (if (frame-exists "WANDERLUST")
           (progn
@@ -823,21 +794,6 @@
     )
   )
 )
-
-;;  ;; list of frames -- one per line
-;;  (let* ((lawlist (make-vector (length frames) nil))
-;;    (z 0))
-;;      (dolist (frame frames)
-;;        (aset lawlist z
-;;          (nconc
-;;            (list
-;;              (message "%s" (frame-parameter frame 'name))
-;;            )
-;;           )
-;;        ) 
-;;      (setq z (1+ z)) ))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
