@@ -277,7 +277,7 @@
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
           (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
         (setq frame-bufs-mode t)
-        (setq tabbar-buffer-list-function 'tabbar-buffer-list)
+        (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; or use 'buffer-lawlist-function
         (setq tabbar-buffer-groups-function (lambda () (list (cond 
           ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
           (t
