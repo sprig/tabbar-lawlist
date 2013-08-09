@@ -388,7 +388,8 @@
                     )
                     ;; else
                     (message "(car group):  %s" (car group))
-                    (and (eq header-line-format tabbar-header-line-format)
+                    (and
+                      (eq header-line-format tabbar-header-line-format)
                       (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
                       (eq (current-buffer) (window-buffer (selected-window)))
                       (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
@@ -401,7 +402,7 @@
                         (setq bl (cdr bl)))
                         (when (and (setq sibling (or (car bl) sibling))
                               (buffer-live-p sibling))
-                           ;; Move sibling buffer in front of the buffer list.
+                          ;; Move sibling buffer in front of the buffer list.
                           (save-current-buffer (switch-to-buffer sibling))
                           (message "sibling:  %s" sibling))) )
                   )
@@ -711,7 +712,7 @@
     (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (setq group-focus tabbar-current-tabset)
     (kill-buffer nil)
-    (get-group group-focus) ;; The sibling portion of code from get-group is used consistently here.
+    (get-group group-focus) ;; Why isn't the sibling portion of get-group being used here?
     (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
     (if
       (and
