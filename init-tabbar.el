@@ -1,11 +1,11 @@
 ;; init-tabbar.el
 
-;; Version 1.00 -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
+;; Version (alpha) -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
 
-;; Requires modified versions of frame-bufs and buff-menu, which are consolidated and
-;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
-
-;; Tested with Tabbar version 2.0; and Emacs Trunk version 24.3.50 (9.0).
+;; Requires a current version of Emacs Trunk (24.3.50 (9.0)) and
+;; modified versions of frame-bufs and buff-menu (consolidated into one file)
+;; and a modified version of tabbar, all of which are contained within the lawlist
+;; repository:  https://github.com/lawlist/tabbar-lawlist
 
 ;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
 
@@ -23,14 +23,14 @@
 ;; (sit-for 0)
 
 (require 'tabbar)
-(require 'frame-bufs) ;; Use the modified version in the lawlist repository.
+(require 'init-frames) ;; Use the modified version in the lawlist repository.
 (tabbar-mode t)
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
 (global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-and-tab-groups))))
-(define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
-(define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
+(define-key global-map [?\s-\~] 'tabbar-backward-group) ;; tabbar-cycle has been modified by lawlist
+(define-key global-map [?\s-\`] 'tabbar-forward-group) ;; ;; tabbar-cycle has been modified by lawlist
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)]       'tabbar-forward-group) 
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
@@ -186,11 +186,12 @@
     (a (read-char-exclusive))
     (choice (case a
       ((?d)
+        (record-current-frame-buffer)
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'buffer-lawlist-function)
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
-        (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
+        (define-key global-map [?\s-\~] 'tabbar-backward-group)
+        (define-key global-map [?\s-\`] 'tabbar-forward-group)
         (refresh-frames-and-tab-groups)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
@@ -205,7 +206,6 @@
               (get-group "org"))
             (get-frame "MAIN")
             (get-group "main")))))
-        (refresh-frames-and-tab-groups)
         (if (not (or (equal "MAIN" (frame-parameter nil 'name))
                      (equal "ORG" (frame-parameter nil 'name))))
           (get-frame "MAIN"))
@@ -236,14 +236,16 @@
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (record-current-frame-buffer)
         (tile-frames-vertically)
-        (refresh-frames-and-tab-groups)) ;; get-group is responsible for sometimes choosing the wrong tab
+        (refresh-frames-and-tab-groups))
       ((?h)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (record-current-frame-buffer)
         (tile-frames-horizontally)
-        (refresh-frames-and-tab-groups)) ;; get-group is responsible for sometimes choosing the wrong tab
+        (refresh-frames-and-tab-groups))
       ((?T)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
@@ -251,6 +253,8 @@
         (ido-frame-bufs))
       ((?F)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
+        (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
+        (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
         (setq current-frame (frame-parameter nil 'name))
         (if (frame-exists "WANDERLUST")
           (progn
@@ -338,8 +342,7 @@
   (interactive)
   (if (< emacs-major-version 24)
       (ido-common-initialization))
-  (unless (and (featurep 'tabbar)
-               tabbar-mode)
+  (unless (and (featurep 'tabbar) tabbar-mode)
     (error "Error: tabbar-mode not turned on."))
   (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh 1 of 3
   (tabbar-scroll tabbar-tabsets-tabset 0)  ;; refresh 2 of 3
@@ -420,7 +423,7 @@
   "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
   Other buffers are excluded."
   (interactive)
-  (if (and (featurep 'frame-bufs) frame-bufs-mode)
+  (if (and (featurep 'init-frames) frame-bufs-mode)
     (progn
       (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
               (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
@@ -631,124 +634,62 @@
   (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
       (frame-exists-wanderlust)) )
 
+(defun record-current-frame-buffer ()
+  (setq current-frame (frame-parameter nil 'name))
+    (setq restore-buffer (buffer-name)))
+
 (defun refresh-frames-and-tab-groups ()
 (interactive)
-  (setq current-frame (frame-parameter nil 'name))
-  (get-group "wanderlust") (frames-and-tab-groups)
-  (get-group "system") (frames-and-tab-groups)
-  (get-group "main") (frames-and-tab-groups)
-  (get-group "org") (frames-and-tab-groups)
-  (get-frame "WANDERLUST") (get-group "wanderlust")
-  (get-frame "SYSTEM") (get-group "system")
-  (get-frame "MAIN") (get-group "main")
-  (get-frame "ORG") (get-group "org")
-  (get-frame current-frame)
+        (if (frame-exists "MAIN") (tabbar-forward-group))
+        (if (frame-exists "SYSTEM") (tabbar-forward-group))
+        (if (frame-exists "ORG") (tabbar-forward-group))
+        (if (frame-exists "WANDERLUST") (tabbar-forward-group))
+        (get-frame current-frame)
+        (switch-to-buffer restore-buffer)
+;; (setq current-frame (frame-parameter nil 'name))
+;; (get-group "wanderlust") (frames-and-tab-groups)
+;; (get-group "system") (frames-and-tab-groups)
+;; (get-group "main") (frames-and-tab-groups)
+;; (get-group "org") (frames-and-tab-groups)
+;; (get-frame "WANDERLUST") (get-group "wanderlust")
+;; (get-frame "SYSTEM") (get-group "system")
+;; (get-frame "MAIN") (get-group "main")
+;; (get-frame "ORG") (get-group "org")
+;;  (get-frame current-frame)
   (tabbar-display-update)
   (sit-for 0))
 
 (defun cycle-forward-frames-groups ()
-  "Cycle to next available fame / group."
+  "Cycle to next frame."
 (interactive)
-  (other-frame 1)
-  (if (not (and (featurep 'frame-bufs) frame-bufs-mode))
-    (progn
-    (if (equal "MAIN" (frame-parameter nil 'name))
-      (progn
-        (get-group "main")
-       ))
-    (if (equal "SYSTEM" (frame-parameter nil 'name))
-      (progn
-        (get-group "system")
-       ))
-    (if (equal "ORG" (frame-parameter nil 'name))
-      (progn
-        (get-group "org")
-      
-      ))
-    (if (equal "WANDERLUST" (frame-parameter nil 'name))
-      (progn
-        (get-group "wanderlust") )))))
+  (other-frame 1) )
 
 (defun cycle-backward-frames-groups ()
-  "Cycle to next available fame / group."
+  "Cycle to previous frame."
 (interactive)
-  (other-frame -1)
-  (if (not (and (featurep 'frame-bufs) frame-bufs-mode))
-    (progn
-    (if (equal "MAIN" (frame-parameter nil 'name))
-      (get-group "main"))
-    (if (equal "SYSTEM" (frame-parameter nil 'name))
-      (get-group "system"))
-    (if (equal "ORG" (frame-parameter nil 'name))
-      (get-group "org"))
-    (if (equal "WANDERLUST" (frame-parameter nil 'name))
-      (get-group "wanderlust")))))
+  (other-frame -1) )
 
-
-;; *** TODO -- add code to handle frame-bufs-mode
 (defun delete-frame-if-empty ()
 (interactive)
-  (if
-    (and
-      (not (equal "SYSTEM" (frame-parameter nil 'name))) ;; CONSIDER USING ONLY THIS CONDITION
-;;      (not (equal (buffer-name) "*scratch*"))
-;;      (not (equal (buffer-name) "*bbdb*"))
-;;      (not (equal (buffer-name) "*Messages*"))
-    )
- ;; THEN
+  (if (not (equal "SYSTEM" (frame-parameter nil 'name)))
+  ;; THEN
   (progn
-    (remove-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
-    (setq group-focus tabbar-current-tabset)
-    (kill-buffer nil)
-    (get-group group-focus) ;; Why isn't the sibling portion of get-group being used here?
-    (add-hook 'kill-buffer-hook 'tabbar-buffer-track-killed)
-    (if
-      (and
-        (not (and (featurep 'frame-bufs) frame-bufs-mode))
-        (equal "WANDERLUST" (frame-parameter nil 'name))
-        (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
-      (progn
-      (get-group "wanderlust")
-      (if
-        (and
-          (equal "WANDERLUST" (frame-parameter nil 'name))
-          (not (equal (format "%s" tabbar-current-tabset) "wanderlust")))
-        (delete-frame))))
-    (if
-      (and
-        (not (and (featurep 'frame-bufs) frame-bufs-mode))
-        (equal "ORG" (frame-parameter nil 'name))
-        (not (equal (format "%s" tabbar-current-tabset) "org")))
-      (progn
-      (get-group "org")
-      (if
-        (and
-          (equal "ORG" (frame-parameter nil 'name))
-          (not (equal (format "%s" tabbar-current-tabset) "org")))
-        (delete-frame))))
-    (if
-      (and
-        (not (and (featurep 'frame-bufs) frame-bufs-mode))
-        (equal "MAIN" (frame-parameter nil 'name))
-        (not (equal (format "%s" tabbar-current-tabset) "main")))
-      (progn
-      (get-group "main")
-      (if
-        (and
-          (equal "MAIN" (frame-parameter nil 'name))
-          (not (equal (format "%s" tabbar-current-tabset) "main")))
-        (delete-frame)))) )
+    (setq current-buffer-name (buffer-name))
+    (tabbar-backward)
+    (setq previous-buffer-name (buffer-name))
+    (kill-buffer current-buffer-name)
+    (if (equal current-buffer-name previous-buffer-name)
+      (delete-frame)))
   ;; ELSE
   (if (not (equal (buffer-name) "*Messages*"))
     ;; then
     (kill-buffer nil)
     ;; else
-    (message "Please leave the *Messages* buffer open, or use M-x kill-buffer or kill-this-buffer, or use C-x k.") )
-;;    (kill-buffer nil)
-;;    (if (buffer-exists "*scratch*")
-;;      (switch-to-buffer "*scratch*")
-;;      (find-file "~/.0.data/.0.emacs/*scratch*")) 
-  ))
+    (message "Please leave the *Messages* buffer open, or use M-x kill-buffer or kill-this-buffer, or use C-x k.")) ))
+  ;; (if (buffer-exists "*scratch*")
+  ;; (switch-to-buffer "*scratch*")
+  ;; (find-file "~/.0.data/.0.emacs/*scratch*")) 
+
 
 (defun print-frame-info ()
  (interactive)
