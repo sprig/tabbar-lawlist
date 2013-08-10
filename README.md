@@ -3,7 +3,7 @@ TABBAR ENHANCEMENTS
 
 This is a work in progress (with ongoing changes), which contains various configurations and functions for enhancing the use of Tabbar 2.0 with Emacs.
 
-Tabbar 2.0 has been modified by hard-coding the colors and fonts of the tabs.
+A modified version of Tabbar 2.0 is included within this repository, except the *.tiff files in the original source.
 
 The file `init-tabbar.el` has been configured to use four frames (SYSTEM; MAIN; WANDERLUST; ORG) with corresponding tab groups (system; main; wanderlust; org).  The function `tabbar-choice` has an option to enable frame-bufs-mode, and options to choose different tabbar groupings.  If `frame-bufs-mode` is enabled, Tabbar will group tabs on a per frame basis on-the-fly based upon the functions `frame-bufs-make-associated` and `frame-bufs-make-non-associated` that can be used once the function `frame-bufs` brings up the buffer menu window.
 
