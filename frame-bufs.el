@@ -1,3 +1,6 @@
+;; M-x-frame-bufs-dismiss-buffer
+;; M-x frame-bufs-make-associated
+
 ;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
 ;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
 ;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
@@ -13,6 +16,14 @@
 ;; consideration the variable frame-bufs-include-displayed-buffers, which seems
 ;; to work best with existing frames that have tabbar groups already assigned.
 
+(defconst frame-bufs-hook-assignments
+  '(
+    (buff-menu-mode-hook . frame-bufs-set-up-buff-menu)
+    (window-configuration-change-hook . frame-bufs-window-change)
+    (before-make-frame-hook . frame-bufs-before-make-frame)
+    (after-make-frame-functions . frame-bufs-after-make-frame)
+    ))
+
 (defun frame-bufs (&optional files-only)
   "Display a list of names of existing buffers.
   The list is displayed in a buffer named `*BUFFER LIST*'.
@@ -20,7 +31,9 @@
   Non-null optional arg FILES-ONLY means mention only file buffers.
   For more information, see the function `buff-menu'."
 (interactive "P")
-(frame-bufs-mode t)
+  (setq buff-menu-buffer-column 5)
+;;  (dolist (hook frame-bufs-hook-assignments) (add-hook (car hook) (cdr hook)))
+  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
   (display-buffer (frame-bufs-list-buffers-noselect files-only)) ;; reversed -- INCLUDE non-files
   ;; (display-buffer (frame-bufs-list-buffers-noselect buffer-list)) ;; reversed -- EXCLUDE non-files
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
@@ -316,9 +329,6 @@ itself."
 
 ;; By default, none of these commands has a key binding.
 
-;; o To rebind the new buffer menu commands, alter their bindings in the
-;;   keymap `frame-bufs-mode-map'.
-
 ;; o The indicator bit used for frame-associated buffers (default `o') can be
 ;;   set via the variable `frame-bufs-associated-buffer-bit'.
 
@@ -505,26 +515,9 @@ use of the variable `frame-bufs-full-list'."
     frame-bufs
     buff-menu-other-window))
 
-(defconst frame-bufs-hook-assignments
-  '(
-    (buff-menu-mode-hook . frame-bufs-set-up-buff-menu)
-    (window-configuration-change-hook . frame-bufs-window-change)
-    (before-make-frame-hook . frame-bufs-before-make-frame)
-    (after-make-frame-functions . frame-bufs-after-make-frame)
-    ))
-
 ;;; ---------------------------------------------------------------------
 ;;; Mode Definitions and Keymaps
 ;;; ---------------------------------------------------------------------
-
-(defvar frame-bufs-mode-map 
-  (let ((map (make-sparse-keymap)))
-    (define-key map "F" 'frame-bufs-toggle-full-list)
-    (define-key map "A" 'frame-bufs-make-associated)
-    (define-key map "N" 'frame-bufs-make-non-associated)
-    map)
-    "Keymap for `frame-bufs-mode'.  
-See the documentation of that command for details.")
 
 (defvar frame-bufs-mode-line-keymap
   ;; Set up a keymap so that clicking on our mode line information toggles
@@ -565,7 +558,7 @@ edited from within the buffer menu.
 The following new commands are available in the buffer
 menu:
 
-\\<frame-bufs-mode-map>\\[frame-bufs-toggle-full-list] -- Toggle between listing frame-associated buffers and all buffers.
+\\[frame-bufs-toggle-full-list] -- Toggle between listing frame-associated buffers and all buffers.
 \\[frame-bufs-make-associated] -- Mark a buffer to be added to the associated buffer list.
 \\[frame-bufs-make-non-associated] -- Mark a buffer to be removed from the associated buffer list.
 
@@ -873,9 +866,6 @@ selected frame."
 ;;; ---------------------------------------------------------------------
 
 (defun frame-bufs-set-up-buff-menu ()
-  ;; Set the keymap to our keymap.  Note that frame-bufs-mode-map has
-  ;; buff-menu-mode-map as its parent.
-  (use-local-map frame-bufs-mode-map)
   ;; Install indicator of frame-list/full-list status in the mode-line, after
   ;; mode-line-buffer-identification.
   (let ((before (reverse (memq 'mode-line-buffer-identification
@@ -1363,14 +1353,17 @@ Auto Revert Mode.")
       `(menu-item ,(purecopy "frame-bufs-reset-all-frames") frame-bufs-reset-all-frames
 		 :help ,(purecopy "frame-bufs-reset-all-frames")))
 
+    (define-key map "F" 'frame-bufs-toggle-full-list)
     (define-key menu-map [frame-bufs-toggle-full-list]
       `(menu-item ,(purecopy "frame-bufs-toggle-full-list") frame-bufs-toggle-full-list
 		 :help ,(purecopy "frame-bufs-toggle-full-list")))
 
+    (define-key map "N" 'frame-bufs-make-non-associated)
     (define-key menu-map [frame-bufs-make-non-associated]
       `(menu-item ,(purecopy "frame-bufs-make-non-associated") frame-bufs-make-non-associated
 		 :help ,(purecopy "frame-bufs-make-non-associated")))
 
+    (define-key map "A" 'frame-bufs-make-associated)
     (define-key menu-map [frame-bufs-make-associated]
       `(menu-item ,(purecopy "frame-bufs-make-associated") frame-bufs-make-associated
 		 :help ,(purecopy "frame-bufs-make-associated")))
@@ -1407,7 +1400,7 @@ Auto Revert Mode.")
 ;; Buffer Menu mode is suitable only for specially formatted data.
 (put 'buff-menu-mode 'mode-class 'special)
 
-(define-derived-mode buff-menu-mode special-mode "buff-menu-mode"
+(define-derived-mode buff-menu-mode special-mode "Every good boy deserves fudge."
   "Major mode for editing a list of buffers.
 Each line describes one of the buffers in Emacs.
 Letters do not insert themselves; instead, they are commands.
@@ -1449,13 +1442,6 @@ Letters do not insert themselves; instead, they are commands.
   (setq buffer-read-only t))
 
 (defvar buff-menu-mode-hook nil)
-
-
-;; We use buff-menu-mode-hook to set frame-bufs-mode-map as the the local
-;; keymap in the buffer menu, so make sure it includes all the
-;; buff-menu-mode-map bindings.
-(set-keymap-parent frame-bufs-mode-map buff-menu-mode-map)
-
 
 (defun buff-menu-toggle-files-only (arg)
   "Toggle whether the current buff-menu displays only file buffers.
