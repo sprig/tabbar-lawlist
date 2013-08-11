@@ -28,7 +28,7 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
-(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-and-tab-groups))))
+(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frame-buffer))))
 (define-key global-map [?\s-\~] 'tabbar-backward-group) ;; tabbar-cycle has been modified by lawlist
 (define-key global-map [?\s-\`] 'tabbar-forward-group) ;; ;; tabbar-cycle has been modified by lawlist
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
@@ -192,7 +192,7 @@
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
         (define-key global-map [?\s-\~] 'tabbar-backward-group)
         (define-key global-map [?\s-\`] 'tabbar-forward-group)
-        (refresh-frames-and-tab-groups)
+        (refresh-restore-frame-buffer)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
         (setq frame-bufs-mode nil)
@@ -238,14 +238,14 @@
         ;; http://www.emacswiki.org/emacs/frame-fns.el
         (record-current-frame-buffer)
         (tile-frames-vertically)
-        (refresh-frames-and-tab-groups))
+        (refresh-restore-frame-buffer))
       ((?h)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
         (record-current-frame-buffer)
         (tile-frames-horizontally)
-        (refresh-frames-and-tab-groups))
+        (refresh-restore-frame-buffer))
       ((?T)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
@@ -253,29 +253,35 @@
         (ido-frame-bufs))
       ((?F)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
+        (unless (not (and (featurep 'init-frames) frame-bufs-mode))
+          (error "Error: frame-bufs-mode is already active."))
         (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
         (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
         (setq current-frame (frame-parameter nil 'name))
         (if (frame-exists "WANDERLUST")
           (progn
+          (switch-to-frame "WANDERLUST")
           (get-group "wanderlust")
           (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list wanderlust-insert)))
           (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
         (if (frame-exists "SYSTEM")
           (progn
+          (switch-to-frame "SYSTEM")
           (get-group "system")
           (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list system-insert)))
           (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
         (if (frame-exists "MAIN")
           (progn
+          (switch-to-frame "MAIN")
           (get-group "main")
           (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list main-insert)))
           (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
         (if (frame-exists "ORG")
           (progn
+          (switch-to-frame "ORG")
           (get-group "org")
           (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
           (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
@@ -376,7 +382,7 @@
     (if (not (equal (format "%s" (car tab-group)) "#<killed buffer>") )
       (progn
         (switch-to-buffer (car tab-group))
-        (message "Switched to tab-group \"%s\", current buffer: %s" (cdr tab-group) (car tab-group))
+;;        (message "Switched to tab-group \"%s\", current buffer: %s" (cdr tab-group) (car tab-group))
       )
       ;; else
       (message "(car tab-group):  %s" (car tab-group))
@@ -477,37 +483,41 @@
 
 (defun frame-exists (frame-name)
   (not (eq nil (get-frame frame-name))))
-(defun get-frame (frame-to)
-  (setq frame-from (frame-parameter nil 'name) )
+
+(defun get-frame (frame)
+  "Return a frame, if any, named FRAME (a frame or a string).
+If none, return nil.
+If FRAME is a frame, it is returned."
+  (cond ((framep frame) frame)
+        ((stringp frame)
+         (catch 'get-a-frame-found
+           (dolist (fr (frame-list))
+             (when (string= frame (get-frame-name fr))
+               (throw 'get-a-frame-found fr)))
+           nil))
+        (t
+         (error
+          "Function `get-frame-name': Arg neither a string nor a frame: `%s'"
+          frame))))
+
+(defun switch-to-frame (frame-name)
   (let ((frames (frame-list)))
     (catch 'break
       (while frames
         (let ((frame (car frames)))
-          (if (equal (frame-parameter frame 'name) frame-to)
-            ;; then
-            (throw 'break (progn
-              (select-frame-set-input-focus frame)
-              (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)) )
-            ;; else
-            (setq frames (cdr frames))
-          )
-        )
-      )
-    )
-  )
-)
+          (if (equal (frame-parameter frame 'name) frame-name)
+              (throw 'break (select-frame-set-input-focus frame))
+            (setq frames (cdr frames))))))))
 
 (defun frame-exists-system ()
 (interactive)
   (if (frame-exists "SYSTEM")
     ;; then
     (progn
-      (message "The frame named \"SYSTEM\" already exists -- do not create.")
+      (switch-to-frame "SYSTEM")
       (get-group "system")
     )
-    ;; else
-    (message "The frame named \"SYSTEM\" does not exist -- create frame." )
-    ;; take control of an existing frame not yet specially named.
+    ;; else -- take control of an existing frame not yet specially named.
     (if
       (and
         (not (equal "MAIN" (frame-parameter nil 'name)))
@@ -534,12 +544,10 @@
   (if (frame-exists "MAIN")
     ;; then
     (progn
-      (message "The frame named \"MAIN\" already exists -- do not create.")
+      (switch-to-frame "MAIN")
       (get-group "main")
     )
-    ;; else
-    (message "The frame named \"MAIN\" does not exist -- create frame." )
-    ;; take control of an existing frame not yet specially named.
+    ;; else -- take control of an existing frame not yet specially named.
     (if
       (and
         (not (equal "MAIN" (frame-parameter nil 'name)))
@@ -565,12 +573,10 @@
   (if (frame-exists "ORG")
     ;; then
     (progn
-      (message "The frame named \"ORG\" exists -- do not create.")
+      (switch-to-frame "ORG")
       (get-group "org")
     )
-    ;; else
-    (message "The frame named \"ORG\" does not exist -- create frame." )
-    ;; take control of an existing frame not yet specially named.
+    ;; else -- take control of an existing frame not yet specially named.
     (if
       (and
         (not (equal "MAIN" (frame-parameter nil 'name)))
@@ -596,12 +602,10 @@
   (if (frame-exists "WANDERLUST")
     ;; then
     (progn
-      (message "The frame named \"WANDERLUST\" already exists -- do not create.")
+      (switch-to-frame "WANDERLUST")
       (get-group "wanderlust")
     )
-    ;; else
-    (message "The frame named \"WANDERLUST\" does not exist -- create frame." )
-    ;; take control of an existing frame not yet specially named.
+    ;; else -- take control of an existing frame not yet specially named.
     (if
       (and
         (not (equal "MAIN" (frame-parameter nil 'name)))
@@ -636,26 +640,28 @@
 
 (defun record-current-frame-buffer ()
   (setq current-frame (frame-parameter nil 'name))
-    (setq restore-buffer (buffer-name)))
+  (setq restore-buffer (buffer-name)))
 
-(defun refresh-frames-and-tab-groups ()
+(defun refresh-restore-frame-buffer ()
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (get-frame current-frame)
+  (switch-to-buffer restore-buffer)
+  (tabbar-display-update)
+  (sit-for 0))
+
+(defun refresh-frames-buffers ()
 (interactive)
-        (if (frame-exists "MAIN") (tabbar-forward-group))
-        (if (frame-exists "SYSTEM") (tabbar-forward-group))
-        (if (frame-exists "ORG") (tabbar-forward-group))
-        (if (frame-exists "WANDERLUST") (tabbar-forward-group))
-        (get-frame current-frame)
-        (switch-to-buffer restore-buffer)
-;; (setq current-frame (frame-parameter nil 'name))
-;; (get-group "wanderlust") (frames-and-tab-groups)
-;; (get-group "system") (frames-and-tab-groups)
-;; (get-group "main") (frames-and-tab-groups)
-;; (get-group "org") (frames-and-tab-groups)
-;; (get-frame "WANDERLUST") (get-group "wanderlust")
-;; (get-frame "SYSTEM") (get-group "system")
-;; (get-frame "MAIN") (get-group "main")
-;; (get-frame "ORG") (get-group "org")
-;;  (get-frame current-frame)
+  (setq current-frame (frame-parameter nil 'name))
+  (setq restore-buffer (buffer-name))
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (tabbar-forward-group)
+  (get-frame current-frame)
+  (switch-to-buffer restore-buffer)
   (tabbar-display-update)
   (sit-for 0))
 
