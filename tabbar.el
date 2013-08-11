@@ -397,7 +397,7 @@ You should use this hook to reset dependent data.")
 The result is a list just as long as the number of existing tab sets."
          (let (,result)
            (if tabbar-tabsets
-         (mapatoms
+	       (mapatoms
 		#'(lambda (,tabset)
 		    (push (funcall ,function ,tabset) ,result))
 		tabbar-tabsets))
@@ -1273,13 +1273,13 @@ Optional argument TYPE is a mouse event type (see the function
           (setq tabset (tabbar-tabs ttabset)
                 tab (car (if backward (last tabset) tabset)))) ;; this is just a setq, not an action.
 (if (equal (format "%s" (cdr tab)) "main")
-  (get-frame "MAIN"))
+  (switch-to-frame "MAIN"))
 (if (equal (format "%s" (cdr tab)) "system")
-  (get-frame "SYSTEM"))
+  (switch-to-frame "SYSTEM"))
 (if (equal (format "%s" (cdr tab)) "org")
-  (get-frame "ORG"))
+  (switch-to-frame "ORG"))
 (if (equal (format "%s" (cdr tab)) "wanderlust")
-  (get-frame "WANDERLUST"))
+  (switch-to-frame "WANDERLUST"))
         )
        (t
         ;; Cycle through visible tabs then tab groups.
