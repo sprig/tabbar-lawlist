@@ -333,7 +333,7 @@
         ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
       ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
         ((member (buffer-name)
-      '("*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
+      '("*Completions*" "*BBDB*" "*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
         "system")
         ((eq major-mode 'dired-mode) "dired")
         ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
