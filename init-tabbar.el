@@ -239,14 +239,18 @@
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (record-frame-buffer)
+        (refresh-frames-buffers)
         (tile-frames-vertically)
-        (refresh-frames-buffers))
+        (restore-frame-buffer))
       ((?h)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
+        (record-frame-buffer)
+        (refresh-frames-buffers)
         (tile-frames-horizontally)
-        (refresh-frames-buffers))
+        (restore-frame-buffer))
       ((?T)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
