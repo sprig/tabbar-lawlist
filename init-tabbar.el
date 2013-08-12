@@ -242,7 +242,9 @@
         (record-frame-buffer)
         (refresh-frames-buffers)
         (tile-frames-vertically)
-        (restore-frame-buffer))
+        (restore-frame-buffer)
+        (tabbar-display-update)
+        (sit-for 0))
       ((?h)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
@@ -250,7 +252,9 @@
         (record-frame-buffer)
         (refresh-frames-buffers)
         (tile-frames-horizontally)
-        (restore-frame-buffer))
+        (restore-frame-buffer)
+        (tabbar-display-update)
+        (sit-for 0))
       ((?T)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
