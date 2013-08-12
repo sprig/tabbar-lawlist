@@ -77,6 +77,8 @@
 (defun tabbar-info ()
 "Diagnostic tabbar data."
 (interactive)
+  (setq frame-bufs-car (car (frame-bufs-buffer-list (selected-frame))))
+  (setq frame-bufs-cdr (cdr (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
   (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
@@ -95,6 +97,8 @@
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
     (other-window 1))
   (message "\n---------------------- tabbar-info --------------------- \n")
+  (message "frame-bufs-car:  %s \n" frame-bufs-car)
+  (message "frame-bufs-cdr:  %s \n" frame-bufs-cdr)
   (message "Selected Frame Buffer List:  %s \n" (frame-parameter (selected-frame) 'buffer-list))
   (message "Buffer List -- all:  %s \n" (buffer-list))
   (message "Selected Frame Buried Buffer List:  %s \n" (frame-parameter (selected-frame) 'buried-buffer-list))
@@ -258,49 +262,54 @@
         (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
         (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
         (setq current-frame (frame-parameter nil 'name))
-        (if (frame-exists "WANDERLUST")
+        (if (frame-exists "WANDERLUST" )
           (progn
-          (switch-to-frame "WANDERLUST")
           (get-group "wanderlust")
-          (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
-          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list wanderlust-insert)))
-          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+          (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
         (if (frame-exists "SYSTEM")
           (progn
-          (switch-to-frame "SYSTEM")
           (get-group "system")
-          (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
-          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list system-insert)))
-          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+          (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
         (if (frame-exists "MAIN")
           (progn
-          (switch-to-frame "MAIN")
           (get-group "main")
-          (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
-          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list main-insert)))
-          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+          (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
         (if (frame-exists "ORG")
           (progn
-          (switch-to-frame "ORG")
           (get-group "org")
-          (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))
-          (modify-frame-parameters (selected-frame) (list (cons 'buffer-list org-insert)))
-          (modify-frame-parameters (selected-frame) (list (cons 'buried-buffer-list nil)))))
+          (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
         (setq frame-bufs-mode t)
-        (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; or use 'buffer-lawlist-function
+        (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; 'tabbar-buffer-list or 'buffer-lawlist-function
         (setq tabbar-buffer-groups-function (lambda () (list (cond 
           ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
-          (t
-            (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-              mode-name
-                (symbol-name major-mode)) )))))
-        (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
+          (t "non-associated") ))))
+        (if (frame-exists "WANDERLUST")
+          (progn
+            (switch-to-frame "WANDERLUST")
+            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list wanderlust-insert)))))
+        (if (frame-exists "SYSTEM")
+          (progn
+            (switch-to-frame "SYSTEM")
+            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list system-insert)))))
+        (if (frame-exists "MAIN")
+          (progn
+            (switch-to-frame "MAIN")
+            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list main-insert)))))
+        (if (frame-exists "ORG")
+          (progn
+            (switch-to-frame "ORG")
+            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list org-insert)))))
+;;        (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
         (tabbar-display-update)
+        (dolist (frame (frame-list))
+          (if frame (cycle-forward-frames-groups)))
         (switch-to-frame current-frame) )
       ((?G)
         (tabbar-buffer-show-groups-toggle-switch)
         (tabbar-display-update))
       (t (message "No changes have been made.")) )))))
+
+(defvar unrelated-function nil)
 
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
@@ -643,10 +652,8 @@ If FRAME is a frame, it is returned."
   (setq restore-buffer (buffer-name)))
 
 (defun refresh-restore-frame-buffer ()
-  (tabbar-forward-group)
-  (tabbar-forward-group)
-  (tabbar-forward-group)
-  (tabbar-forward-group)
+  (dolist (frame (frame-list))
+    (if frame (tabbar-forward-group)))
   (switch-to-frame current-frame)
   (switch-to-buffer restore-buffer)
   (tabbar-display-update)
@@ -656,10 +663,8 @@ If FRAME is a frame, it is returned."
 (interactive)
   (setq current-frame (frame-parameter nil 'name))
   (setq restore-buffer (buffer-name))
-  (tabbar-forward-group)
-  (tabbar-forward-group)
-  (tabbar-forward-group)
-  (tabbar-forward-group)
+  (dolist (frame (frame-list))
+    (if frame (tabbar-forward-group)))
   (switch-to-frame current-frame)
   (switch-to-buffer restore-buffer)
   (tabbar-display-update)
@@ -668,7 +673,16 @@ If FRAME is a frame, it is returned."
 (defun cycle-forward-frames-groups ()
   "Cycle to next frame."
 (interactive)
-  (other-frame 1) )
+  (other-frame 1)
+  (if (equal "WANDERLUST" (frame-parameter nil 'name))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+  (if (equal "SYSTEM" (frame-parameter nil 'name))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+  (if (equal "ORG" (frame-parameter nil 'name))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+  (if (equal "MAIN" (frame-parameter nil 'name))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+ )
 
 (defun cycle-backward-frames-groups ()
   "Cycle to previous frame."
