@@ -28,11 +28,11 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
-(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frame-buffer))))
+(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-buffers))))
 (define-key global-map [?\s-\~] 'tabbar-backward-group) ;; tabbar-cycle has been modified by lawlist
 (define-key global-map [?\s-\`] 'tabbar-forward-group) ;; ;; tabbar-cycle has been modified by lawlist
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
-(global-set-key [(control tab)]       'tabbar-forward-group) 
+(global-set-key [(control tab)] 'tabbar-forward-group) 
 (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
 (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
 (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
@@ -190,13 +190,12 @@
     (a (read-char-exclusive))
     (choice (case a
       ((?d)
-        (record-current-frame-buffer)
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'buffer-lawlist-function)
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
         (define-key global-map [?\s-\~] 'tabbar-backward-group)
         (define-key global-map [?\s-\`] 'tabbar-forward-group)
-        (refresh-restore-frame-buffer)
+        (tabbar-display-update)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
         (setq frame-bufs-mode nil)
@@ -213,6 +212,7 @@
         (if (not (or (equal "MAIN" (frame-parameter nil 'name))
                      (equal "ORG" (frame-parameter nil 'name))))
           (switch-to-frame "MAIN"))
+        (tabbar-display-update)
         (message "You have chosen: \"COURT\""))
       ((?a)
         (setq frame-bufs-mode nil)
@@ -222,7 +222,6 @@
         (define-key global-map [?\s-\`] 'tabbar-forward-tab)
         (switch-to-frame "SYSTEM")
         (tabbar-display-update)
-        (sit-for 0)
         (message "You have chosen: \"everything\""))
       ((?t)
         (tabbar-display-update)
@@ -240,16 +239,14 @@
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
-        (record-current-frame-buffer)
         (tile-frames-vertically)
-        (refresh-restore-frame-buffer))
+        (refresh-frames-buffers))
       ((?h)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
         ;; http://www.emacswiki.org/emacs/frame-fns.el
-        (record-current-frame-buffer)
         (tile-frames-horizontally)
-        (refresh-restore-frame-buffer))
+        (refresh-frames-buffers))
       ((?T)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (tabbar-display-update)
@@ -261,7 +258,7 @@
           (error "Error: frame-bufs-mode is already active."))
         (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
         (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
-        (setq current-frame (frame-parameter nil 'name))
+        (record-frame-buffer)
         (if (frame-exists "WANDERLUST" )
           (progn
           (get-group "wanderlust")
@@ -302,8 +299,9 @@
 ;;        (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
         (tabbar-display-update)
         (dolist (frame (frame-list))
-          (if frame (cycle-forward-frames-groups)))
-        (switch-to-frame current-frame) )
+          (switch-to-frame (frame-parameter frame 'name) )
+          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+        (restore-frame-buffer) )
       ((?G)
         (tabbar-buffer-show-groups-toggle-switch)
         (tabbar-display-update))
@@ -454,20 +452,6 @@
 (defun ido-frame ()
   (interactive)
   (setq frame-to (ido-completing-read "Select Frame:  " (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))))
-;;  (setq frame-to (read-string (format "From: (%s) => To: %s.  Select: "
-;;    ;;  From:
-;;    (frame-parameter nil 'name)
-;;    ;;  To:
-;;    (mapcar
-;;      (lambda (frame) "print frame"
-;;        (reduce 'concat
-;;          (mapcar (lambda (s) (format "%s" s))
-;;            (list "|" (frame-parameter frame 'name) "|" )
-;;          )
-;;        )
-;;      )
-;;    (frame-list) )
-;;  )))
   (setq frame-from (frame-parameter nil 'name))
   (let ((frames (frame-list)))
     (catch 'break
@@ -647,47 +631,45 @@ If FRAME is a frame, it is returned."
   (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
       (frame-exists-wanderlust)) )
 
-(defun record-current-frame-buffer ()
+(defun record-frame-buffer ()
   (setq current-frame (frame-parameter nil 'name))
-  (setq restore-buffer (buffer-name)))
+  (setq restore-buffer (buffer-name)) )
 
-(defun refresh-restore-frame-buffer ()
-  (dolist (frame (frame-list))
-    (if frame (tabbar-forward-group)))
+(defun restore-frame-buffer ()
   (switch-to-frame current-frame)
-  (switch-to-buffer restore-buffer)
-  (tabbar-display-update)
-  (sit-for 0))
+  (switch-to-buffer restore-buffer) )
 
 (defun refresh-frames-buffers ()
 (interactive)
-  (setq current-frame (frame-parameter nil 'name))
-  (setq restore-buffer (buffer-name))
-  (dolist (frame (frame-list))
-    (if frame (tabbar-forward-group)))
-  (switch-to-frame current-frame)
-  (switch-to-buffer restore-buffer)
-  (tabbar-display-update)
-  (sit-for 0))
+  (if (not (and (featurep 'init-frames) frame-bufs-mode))
+    (progn
+      (get-group "wanderlust") (frames-and-tab-groups)
+      (get-group "system") (frames-and-tab-groups)
+      (get-group "main") (frames-and-tab-groups)
+      (get-group "org") (frames-and-tab-groups)
+      (dolist (frame (frame-list))
+        (when frame (tabbar-forward-group))) ))
+  (if (and (featurep 'init-frames) frame-bufs-mode)
+    (progn
+      (dolist (frame (frame-list))
+        (switch-to-frame (frame-parameter frame 'name) )
+        (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))))
 
 (defun cycle-forward-frames-groups ()
-  "Cycle to next frame."
+  "Cycle to next frame-bufs frame."
 (interactive)
+  (unless (and (featurep 'init-frames) frame-bufs-mode)
+    (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame 1)
-  (if (equal "WANDERLUST" (frame-parameter nil 'name))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
-  (if (equal "SYSTEM" (frame-parameter nil 'name))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
-  (if (equal "ORG" (frame-parameter nil 'name))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
-  (if (equal "MAIN" (frame-parameter nil 'name))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
- )
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
 
 (defun cycle-backward-frames-groups ()
-  "Cycle to previous frame."
+  "Cycle to previous frame-bufs frame."
 (interactive)
-  (other-frame -1) )
+  (unless (and (featurep 'init-frames) frame-bufs-mode)
+    (error "Error: frame-bufs-mode must be active for this function to work."))
+  (other-frame -1)
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
 
 (defun delete-frame-if-empty ()
 (interactive)
