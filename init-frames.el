@@ -1062,7 +1062,10 @@ Optional ARG means move up."
                        (insert " "))
               (delete-region (point) (progn (forward-line 1) (point)))
               (unless (bobp)
-                (forward-char -1)))))))))
+                (forward-char -1)))))))
+  (other-window 1)
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  (other-window 1) ))
 
 ;; We split this off from frame-bufs-menu-execute for the convenience of
 ;; buff-menu+.
