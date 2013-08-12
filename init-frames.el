@@ -33,7 +33,7 @@
 (interactive "P")
   (setq buff-menu-buffer-column 5)
 ;;  (dolist (hook frame-bufs-hook-assignments) (add-hook (car hook) (cdr hook)))
-  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
+;;  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
   (display-buffer (frame-bufs-list-buffers-noselect files-only)) ;; reversed -- INCLUDE non-files
   ;; (display-buffer (frame-bufs-list-buffers-noselect buffer-list)) ;; reversed -- EXCLUDE non-files
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
