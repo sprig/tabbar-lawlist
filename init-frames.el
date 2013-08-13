@@ -1,11 +1,13 @@
-;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
-;; M-x associate-current-buffer -- control+option+command+a
+;; init-frames.el
 
 ;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
 ;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
 ;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
 
 ;;  (setq frame-bufs-mode t)
+
+;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
+;; M-x associate-current-buffer -- control+option+command+a
 
 (defconst frame-bufs-hook-assignments
   '(
