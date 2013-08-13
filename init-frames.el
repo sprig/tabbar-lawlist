@@ -1,20 +1,11 @@
-;; M-x-frame-bufs-dismiss-buffer
-;; M-x frame-bufs-make-associated
+;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
+;; M-x associate-current-buffer -- control+option+command+a
 
 ;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
 ;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
 ;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
 
 ;;  (setq frame-bufs-mode t)
-
-;; NOTE:  (frame-bufs-initialize-existing-frame frame) is needed
-;; to take advantage of the variable:  `frame-bufs-include-displayed-buffers t`,
-;; which associates the buffers presently being displayed on every frame when
-;; frame-bufs-mode is enabled.  Frame-bufs remembers prior buffer associations
-;; if it is disabled and then later activated again.  The function named
-;; `frame-bufs-initialize-existing-frame` has been modified to only take into
-;; consideration the variable frame-bufs-include-displayed-buffers, which seems
-;; to work best with existing frames that have tabbar groups already assigned.
 
 (defconst frame-bufs-hook-assignments
   '(
@@ -32,10 +23,7 @@
   For more information, see the function `buff-menu'."
 (interactive "P")
   (setq buff-menu-buffer-column 5)
-;;  (dolist (hook frame-bufs-hook-assignments) (add-hook (car hook) (cdr hook)))
-;;  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
-  (display-buffer (frame-bufs-list-buffers-noselect files-only)) ;; reversed -- INCLUDE non-files
-  ;; (display-buffer (frame-bufs-list-buffers-noselect buffer-list)) ;; reversed -- EXCLUDE non-files
+  (display-buffer (frame-bufs-list-buffers-noselect))
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
     (other-window 1))
   (revert-buffer) )
@@ -658,8 +646,7 @@ variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
 ;;; Associated-Buffer List Maintenance and Manipulation
 ;;; ---------------------------------------------------------------------
 
-;; Called by window-configuration-change-hook to update the associated-buffer
-;; list.
+;; Called by window-configuration-change-hook to update the associated-buffer list.
 (defun frame-bufs-window-change ()
   (let ((frame (selected-frame)))
     (dolist (win (window-list frame 'no-minibuf))
@@ -845,21 +832,33 @@ already present."
 
 (defun frame-bufs-dismiss-buffer (&optional buf frame)
   "Remove assocation between BUF and FRAME without entering the buffer menu.
-In addition, if any windows on FRAME are currently displaying
-BUF, replace BUF in those windows with some other buffer.  When
-called with no arguments, acts on the current buffer and the
-selected frame."
+  In addition, if any windows on FRAME are currently displaying
+  BUF, replace BUF in those windows with some other buffer.  When
+  called with no arguments, acts on the current buffer and the
+  selected frame."
   (interactive)
-  (unless buf 
-    (setq buf (current-buffer)))
-  (unless frame
-    (setq frame (selected-frame)))
-  (frame-bufs-remove-buffer buf frame)
-  ;; We loop over the windows ourselves because replace-buffer-in-windows
-  ;; acts on all frames; we only want to act on the selected frame.
-  (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
-    (set-window-buffer win (other-buffer buf))))
+    (unless buf 
+      (setq buf (current-buffer)))
+    (unless frame
+      (setq frame (selected-frame)))
+    (frame-bufs-remove-buffer buf frame)
+    ;; We loop over the windows ourselves because replace-buffer-in-windows
+    ;; acts on all frames; we only want to act on the selected frame.
+    (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
+      (set-window-buffer win (other-buffer buf))))
 
+(defun associate-current-buffer ()
+(interactive)
+  (if (and (featurep 'init-frames) frame-bufs-mode)
+    (progn
+    (let ((frame (selected-frame)))
+      (let ((buf (get-buffer (current-buffer))))
+        (when (or frame-bufs-include-displayed-buffers
+                  (memq buf (frame-parameter frame 'buffer-list))
+                  (memq buf (frame-parameter frame 'buried-buffer-list)))
+          (frame-bufs-add-buffer buf frame)) ))
+    (tabbar-display-update)
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))) )))
 
 ;;; ---------------------------------------------------------------------
 ;;; Buffer Menu Initialization
@@ -931,13 +930,12 @@ work backwards."
                  " ")
              "A")))
         (forward-line -1)
-        (setq arg (1+ arg)))))
-  (frame-bufs-menu-execute))
+        (setq arg (1+ arg))))))
 
 (defun frame-bufs-make-non-associated (&optional arg)
   "Mark buffer on this line to be made non-associated by \\<buff-menu-mode-map>\\[frame-bufs-menu-execute].
-Prefix arg is how many buffers to make non-associated.  Negative
-arg means work backwards."
+  Prefix arg is how many buffers to make non-associated.  Negative
+  arg means work backwards."
   (interactive "p")
   (when (buff-menu-no-header)
     (let ((buffer-read-only nil))
@@ -965,8 +963,7 @@ arg means work backwards."
                       "N"
                     " ")))
         (forward-line -1)
-        (setq arg (1+ arg)))))
-  (frame-bufs-menu-execute))
+        (setq arg (1+ arg))))))
 
 ;;; ---------------------------------------------------------------------
 ;;;  Advised Buffer Menu Commands 
@@ -1031,54 +1028,10 @@ Optional ARG means move up."
     (insert (concat " " readonly mod associated)))
   (forward-line (if backup -1 1)))
 
-(unless (featurep 'buff-menu+)
-  (defun frame-bufs-menu-execute ()
-    "Save and/or delete buffers marked with \\<buff-menu-mode-map>\\[buff-menu-save] or \\<buff-menu-mode-map>\\[buff-menu-delete]."
-    (interactive)
-    (when frame-bufs-mode
-      (frame-bufs-buffer-menu-execute))
-    (save-excursion
-      (buff-menu-beginning)
-      (while (re-search-forward "^..S" nil t)
-        (let ((modp nil))
-          (with-current-buffer (buff-menu-buffer t)
-            (save-buffer)
-            (setq modp (buffer-modified-p)))
-          (let ((buffer-read-only nil))
-            (delete-char -1)
-            (insert (if modp "*" " "))))))
-    (save-excursion
-      (buff-menu-beginning)
-      (let ((buff-menu-buffer (current-buffer))
-            (buffer-read-only nil))
-        (while (re-search-forward "^D" nil t)
-          (forward-char -1)
-          (let ((buf (buff-menu-buffer nil)))
-            (or (eq buf nil)
-                (eq buf buff-menu-buffer)
-                (save-excursion (kill-buffer buf)))
-            (if (and buf (buffer-name buf))
-                (progn (delete-char 1)
-                       (insert " "))
-              (delete-region (point) (progn (forward-line 1) (point)))
-              (unless (bobp)
-                (forward-char -1)))))))
-  (other-window 1)
-  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
-  (other-window 1) ))
 
-;; We split this off from frame-bufs-menu-execute for the convenience of
-;; buff-menu+.
-(defun frame-bufs-buffer-menu-execute ()
-  (save-excursion
-    (buff-menu-beginning)
-    (let ((buffer-read-only nil))
-      (while (re-search-forward "^...A" nil t)
-        (forward-char -1)
-        (let ((buf (buff-menu-buffer t)))
-          (frame-bufs-add-buffer buf (selected-frame))
-          (delete-char 1)
-          (insert frame-bufs-associated-buffer-bit)))))
+(defun frame-bufs-menu-execute ()
+  "Save and/or delete buffers marked with \\<buff-menu-mode-map>\\[buff-menu-save] or \\<buff-menu-mode-map>\\[buff-menu-delete]."
+  (interactive)
   (save-excursion
     (buff-menu-beginning)
     (let ((buffer-read-only nil))
@@ -1095,8 +1048,65 @@ Optional ARG means move up."
             (delete-region (point) (progn (forward-line 1) (point)))
             (unless (bobp)
               (forward-char -1)))))))
-  (tabbar-current-tabset 't) ;; refresh
-  (tabbar-display-update) ) ;; refresh
+  (save-excursion
+    (buff-menu-beginning)
+    (let ((buffer-read-only nil))
+      (while (re-search-forward "^...A" nil t)
+        (forward-char -1)
+        (let ((buf (buff-menu-buffer t)))
+          (frame-bufs-add-buffer buf (selected-frame))
+          (delete-char 1)
+          (insert frame-bufs-associated-buffer-bit)))))
+  (save-excursion
+    (buff-menu-beginning)
+    (while (re-search-forward "^..S" nil t)
+      (let ((modp nil))
+        (with-current-buffer (buff-menu-buffer t)
+          (save-buffer)
+          (setq modp (buffer-modified-p)))
+        (let ((buffer-read-only nil))
+          (delete-char -1)
+          (insert (if modp "*" " "))))))
+  (save-excursion
+    (buff-menu-beginning)
+    (let ((buff-menu-buffer (current-buffer))
+          (buffer-read-only nil))
+      (while (re-search-forward "^D" nil t)
+        (forward-char -1)
+        (let ((buf (buff-menu-buffer nil)))
+          (or (eq buf nil)
+              (eq buf buff-menu-buffer)
+              (save-excursion (kill-buffer buf)))
+          (if (and buf (buffer-name buf))
+              (progn (delete-char 1)
+                     (insert " "))
+            (delete-region (point) (progn (forward-line 1) (point)))
+            (unless (bobp)
+              (forward-char -1)))))))
+  (other-window 1)
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+  ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+  ;;  I already have the `buffer-exists` function elsewhere:
+  ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+  (if (buffer-exists "nil")
+    (kill-buffer "nil"))
+  (other-window 1)
+
+;;(tabbar-display-update)
+;;(sit-for 0)
+;;(message "%s" (buffer-name))
+;;(revert-buffer)
+;;(if (not (equal (buffer-name) "*BUFFER LIST*"))
+
+;;  (progn
+
+;;  (sound)
+
+;;  (switch-to-buffer "*BUFFER LIST*")))
+)
+
+
 
 
 ;; The definitions of the following three commands in buff-menu.el hard-code
@@ -1271,6 +1281,7 @@ Auto Revert Mode.")
   (let ((map (make-keymap))
 	(menu-map (make-sparse-keymap)))
     (suppress-keymap map t)
+    (define-key map "v" 'buff-menu-select)
     (define-key map "v" 'buff-menu-select)
     (define-key map "2" 'buff-menu-2-window)
     (define-key map "1" 'buff-menu-1-window)
