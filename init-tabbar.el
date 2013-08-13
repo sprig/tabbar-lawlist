@@ -38,6 +38,25 @@
 (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
 (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
 
+;; M-x associate-current-buffer -- control+option+command+a
+(define-key global-map (kbd "<C-M-s-268632065>") 'associate-current-buffer)
+
+;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
+(define-key global-map (kbd "<C-M-s-268632078>") (function (lambda ()
+  (interactive)
+  (if (and (featurep 'init-frames) frame-bufs-mode)
+    (progn
+      (frame-bufs-dismiss-buffer)
+      (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+      ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+      ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+      ;;  I already have the `buffer-exists` function elsewhere:
+      ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+      (if (buffer-exists "nil")
+        (kill-buffer "nil")))))))
+
+
+
 
 ;; Add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.
@@ -45,6 +64,7 @@
 (add-hook 'find-file-hook
   (lambda ()
     (frames-and-tab-groups)
+    (associate-current-buffer)
   ))
 
 (add-hook 'org-agenda-mode-hook
@@ -154,7 +174,7 @@
 ;; *scratch* will appear in the tab group for text-mode files.
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
   "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"
-"*BUFFER LIST*" "*Help*" "*Compile-Log*")
+  "*BUFFER LIST*" "*Help*" "*Compile-Log*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; The list of buffers put in tabs is provided by the function
@@ -304,52 +324,52 @@
           (progn
             (switch-to-frame "ORG")
             (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list org-insert)))))
-;;        (frame-bufs-reset-all-frames) ;; required when frame-bufs-mode previously activated
+        ;; (frame-bufs-reset-all-frames) ;; Is this needed if frame-bufs-mode previously activated?
         (tabbar-display-update)
         (dolist (frame (frame-list))
           (switch-to-frame (frame-parameter frame 'name) )
-          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+          ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+          ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+          ;;  I already have the `buffer-exists` function elsewhere:
+          ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+          (if (buffer-exists "nil")
+            (kill-buffer "nil")) )
         (restore-frame-buffer) )
       ((?G)
         (tabbar-buffer-show-groups-toggle-switch)
         (tabbar-display-update))
       (t (message "No changes have been made.")) )))))
 
-(defvar unrelated-function nil)
-
 (defun tabbar-buffer-groups ()
   "Return the list of group names the current buffer belongs to.
   Return a list of one element based on major mode."
   (list
     (cond
-      ;; Check if the major mode derives from `comint-mode' or
-      ;; `compilation-mode'.
       ((or (get-buffer-process (current-buffer))
-       (tabbar-buffer-mode-derived-p
-        major-mode '(comint-mode compilation-mode)))
-      "process")
-      ((eq major-mode 'org-mode) "org")
-        ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
-        ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
-      ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
-        ((member (buffer-name)
-      '("*Completions*" "*BBDB*" "*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*" "*BUFFER LIST*" "*Help*" "*Compile-Log*"))
+        (tabbar-buffer-mode-derived-p
+         major-mode '(comint-mode compilation-mode)))
         "system")
-        ((eq major-mode 'dired-mode) "dired")
-        ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
-        ((memq major-mode
+      ((member (buffer-name)
+        '("*Completions*" "*BBDB*" "*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"
+        "*Buffer List*" "*BUFFER LIST*" "*Help*"))
+        "system")
+      ((eq major-mode '(dired-mode help-mode apropos-mode Info-mode Man-mode)) "system")
+         ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
+      ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
+      ((eq major-mode 'org-mode) "org")
+      ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
+      ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
+      ((memq major-mode
         '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
         rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
         gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-      "wanderlust")
-        ((memq major-mode '(text-mode latex-mode help-mode apropos-mode Info-mode Man-mode)) "main")
-     ;; Return `mode-name' if not blank, `major-mode' otherwise.
-     ;; Take care of preserving the match-data because this
-     ;; function is called when updating the header line.
-    (t
-      (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-        mode-name
-       (symbol-name major-mode))) )))
+        "wanderlust")
+      ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
+      (t
+        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+          mode-name
+          (symbol-name major-mode))) )))
 
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
@@ -661,7 +681,13 @@ If FRAME is a frame, it is returned."
     (progn
       (dolist (frame (frame-list))
         (switch-to-frame (frame-parameter frame 'name) )
-        (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))))
+        (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+        ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+        ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+        ;;  I already have the `buffer-exists` function elsewhere:
+        ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+      (if (buffer-exists "nil")
+        (kill-buffer "nil")) ))))
 
 (defun cycle-forward-frames-groups ()
   "Cycle to next frame-bufs frame."
@@ -669,7 +695,13 @@ If FRAME is a frame, it is returned."
   (unless (and (featurep 'init-frames) frame-bufs-mode)
     (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame 1)
-  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+  ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+  ;;  I already have the `buffer-exists` function elsewhere:
+  ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+  (if (buffer-exists "nil")
+    (kill-buffer "nil")) )
 
 (defun cycle-backward-frames-groups ()
   "Cycle to previous frame-bufs frame."
@@ -677,7 +709,13 @@ If FRAME is a frame, it is returned."
   (unless (and (featurep 'init-frames) frame-bufs-mode)
     (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame -1)
-  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
+  ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
+  ;;  I already have the `buffer-exists` function elsewhere:
+  ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
+  (if (buffer-exists "nil")
+    (kill-buffer "nil")) )
 
 (defun delete-frame-if-empty ()
 (interactive)
