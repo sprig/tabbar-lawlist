@@ -1,7 +1,7 @@
 TABBAR ENHANCEMENTS
 =================
 
-This is a work in progress (with ongoing changes) that is being developed with current versions of Emacs Trunk, which contains various configurations and functions for enhancing the use of Tabbar 2.0 with Emacs.
+This is a work in progress (with ongoing changes) that is being developed with current versions of Emacs Trunk.  The tabbar-lawlist repository contains various configurations and functions for enhancing the use of Tabbar and Frame-Bufs with Emacs.
 
 A modified version of Tabbar 2.0 is included within this repository, except the *.tiff files in the original source.
 
