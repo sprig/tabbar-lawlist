@@ -9,4 +9,4 @@ The file `init-tabbar.el` has been configured to use four frames (SYSTEM; MAIN; 
 
 I have modified frame-bufs.el (version 1.92)and buff-menu.el (from Emacs version 23.4) by renaming functions and variables so that the two files work in harmony, without conflicting with a current version of buff-menu.el that gets hard-coded into the Emacs executable during the build process.
 
-![screenshot](http://www.lawlist.com/images/frames-tabbar.png)
+![screenshot](http://www.lawlist.com/images/frames_tabbar.png)
