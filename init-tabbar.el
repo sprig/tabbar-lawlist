@@ -42,6 +42,7 @@
 (define-key global-map (kbd "<C-M-s-268632065>") 'associate-current-buffer)
 
 ;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
+;; Do NOT modify `frame-bufs-diss-buffer`, which is used "as-is" with `frame-bufs-menu-execute`.
 (define-key global-map (kbd "<C-M-s-268632078>") (function (lambda ()
   (interactive)
   (if (and (featurep 'init-frames) frame-bufs-mode)
@@ -55,16 +56,23 @@
       (if (buffer-exists "nil")
         (kill-buffer "nil")))))))
 
-
-
-
 ;; Add additional hooks for specific modes that do not open files
 ;; and some not so commonly used functions such as `rename-buffer`.
 
+;; linked to a defined key elsewhere -- command+o
+(defun lawlist-open-file (&optional filename &rest _wildcards)
+  "Open a file, selecting file by dialog"
+  (interactive)
+  (unless filename
+    (setq filename (ns-read-file-name "Select File to Load" "~/.0.data/" t nil)))
+  (if filename (find-file-existing filename))
+  (frames-and-tab-groups)
+  (associate-current-buffer) )
+
 (add-hook 'find-file-hook
   (lambda ()
-    (frames-and-tab-groups)
-    (associate-current-buffer)
+;;    (frames-and-tab-groups)
+;;    (associate-current-buffer)
   ))
 
 (add-hook 'org-agenda-mode-hook
@@ -89,7 +97,8 @@
 
 (add-hook 'emacs-startup-hook
   (lambda ()
-    (frames-and-tab-groups)  ;; Needed when desktop.el restores files.
+    (require 'init-tabbar)
+    (refresh-frames-buffers)  ;; Needed when desktop.el restores files.
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -399,6 +408,7 @@
           (tabbar-tabs tabbar-tabsets-tabset)))
   (frames-and-tab-groups) )
 
+(defvar tab-group nil)
 (defun get-group (group-name)
   "Jump to a specific tabbar group."
   (unless (and (featurep 'tabbar) tabbar-mode)
