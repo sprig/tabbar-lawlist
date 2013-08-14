@@ -1,7 +1,7 @@
 ;; -*-no-byte-compile: t; -*-
 
 ;; This is a modified version of Tabbar, designed to be used in 
-;; conjunction with the other lisp files in the lawlist repository.
+;; conjunction with the other lisp files in the lawlist repository:
 ;; https://github.com/lawlist/tabbar-lawlist
 
 ;;; Tabbar.el --- Display a tab bar in the header line
