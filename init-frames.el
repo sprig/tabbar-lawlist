@@ -2,7 +2,8 @@
 
 ;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
 ;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
-;; contained within the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
+;; and tabbar.el by David Ponce (which has been slightly modified by lawlist).
+;; Please refer to the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
 
 ;;  (setq frame-bufs-mode t)
 
@@ -32,9 +33,9 @@
 
 (defun frame-bufs-reset-frame (&optional frame)
   "Reset FRAME's associated-buffer list.
-Set list of buffers associated with FRAME to the list of all
-buffers that have been selected on FRAME, and no others.  When
-called with no argument, act on the selected frame."
+  Set list of buffers associated with FRAME to the list of all
+  buffers that have been selected on FRAME, and no others.  When
+  called with no argument, act on the selected frame."
   (interactive)
   (unless frame (setq frame (selected-frame)))
   (set-frame-parameter frame 'frame-bufs-buffer-list
@@ -52,10 +53,10 @@ Call `frame-bufs-reset-frame' on all live frames."
 
 (defun frame-bufs-buffer-list (frame &optional full)
   "When called with argument FULL non-nil, return the same result
-as (buffer-list FRAME).  With FULL nil, update the
-associated-buffer list and return it, sorted by selection order on
-FRAME.  The return value is a copy of the list, not the list
-itself."
+  as (buffer-list FRAME).  With FULL nil, update the
+  associated-buffer list and return it, sorted by selection order on
+  FRAME.  The return value is a copy of the list, not the list
+  itself."
   ;; Filter out internal buffers.
   (frame-bufs-filter-buffers
    (if full
@@ -76,273 +77,177 @@ itself."
      (frame-bufs-sort-buffers frame (frame-parameter frame 'frame-bufs-buffer-list)))))
 
 
-(unless (featurep 'buff-menu+)
-  (defun frame-bufs-list-buffers-noselect (&optional files-only buffer-list)
-    "Non-null optional arg FILES-ONLY means mention only file buffers.
-    If BUFFER-LIST is non-nil, it should be a list of buffers; it means list those buffers and no others."
-    (let* ((old-buffer (current-buffer))
-           (standard-output standard-output)
-           (mode-end (make-string (- buff-menu-mode-width
-                                     2) ? ))
-           (header (concat (if frame-bufs-mode
-                               (if frame-bufs-full-list "CRMF " "CRM  ")
-                             "CRM ")
-                           (buff-menu-buffer+size
-                            (buff-menu-make-sort-button "Buffer" 2)
-                            (buff-menu-make-sort-button "Size" 3))
-                           "  "
-                           (buff-menu-make-sort-button "Mode" 4) mode-end
-                           (buff-menu-make-sort-button "File" 5) 
-                           "\n"))
-           list desired-point)
-      (when buff-menu-use-header-line
-        (let ((pos 0))
-          ;; Turn spaces in the header into stretch specs so they work
-          ;; regardless of the header-line face.
-          (while (string-match "[ \t\n]+" header pos)
-            (setq pos (match-end 0))
-            (put-text-property (match-beginning 0) pos 'display
-                               ;; Assume fixed-size chars in the buffer.
-                               (list 'space :align-to pos)
-                               header)))
-        ;; Try to better align the one-char headers.
-        (put-text-property 0 (if frame-bufs-mode 4 3) 'face 'fixed-pitch header)
-        ;; Add a "dummy" leading space to align the beginning of the header
-        ;; line with the beginning of the text (rather than with the left
-        ;; scrollbar or the left fringe).  --Stef
-        (setq header (concat (propertize " " 'display '(space :align-to 0))
+(defun frame-bufs-list-buffers-noselect (&optional files-only buffer-list)
+  "Non-null optional arg FILES-ONLY means mention only file buffers.
+  If BUFFER-LIST is non-nil, it should be a list of buffers; it means list those buffers and no others."
+  (let* ((old-buffer (current-buffer))
+         (standard-output standard-output)
+         (mode-end (make-string (- buff-menu-mode-width
+                                   2) ? ))
+         (header (concat (if frame-bufs-mode
+                             (if frame-bufs-full-list "CRMF " "CRM  ")
+                           "CRM ")
+                         (buff-menu-buffer+size
+                          (buff-menu-make-sort-button "Buffer" 2)
+                          (buff-menu-make-sort-button "Size" 3))
+                         "  "
+                         (buff-menu-make-sort-button "Mode" 4) mode-end
+                         (buff-menu-make-sort-button "File" 5) 
+                         "\n"))
+         list desired-point)
+    (when buff-menu-use-header-line
+      (let ((pos 0))
+        ;; Turn spaces in the header into stretch specs so they work
+        ;; regardless of the header-line face.
+        (while (string-match "[ \t\n]+" header pos)
+          (setq pos (match-end 0))
+          (put-text-property (match-beginning 0) pos 'display
+                             ;; Assume fixed-size chars in the buffer.
+                             (list 'space :align-to pos)
                              header)))
-      (with-current-buffer (get-buffer-create "*BUFFER LIST*")
-        (setq buffer-read-only nil)
-        (erase-buffer)
-        (setq standard-output (current-buffer))
-        (unless buff-menu-use-header-line
-          (let ((underline (if (char-displayable-p #x2014) #x2014 ?-)))
-            (insert header
-                    (apply 'string
-                           (mapcar #'(lambda (c)
-                                       (if (memq c '(?\n ?\s)) c underline))
-                                   header)))))
-        ;; Collect info for every buffer we're interested in.
-        (dolist
-           (buffer
-              (or
-                buffer-list ;; a
-                (and frame-bufs-mode  (frame-bufs-buffer-list (selected-frame) frame-bufs-full-list)) ;; b
-                (buffer-list (and (boundp 'buff-menu-use-frame-buffer-list) buff-menu-use-frame-buffer-list)) ;; c
-              )
+      ;; Try to better align the one-char headers.
+      (put-text-property 0 (if frame-bufs-mode 4 3) 'face 'fixed-pitch header)
+      ;; Add a "dummy" leading space to align the beginning of the header
+      ;; line with the beginning of the text (rather than with the left
+      ;; scrollbar or the left fringe).  --Stef
+      (setq header (concat (propertize " " 'display '(space :align-to 0))
+                           header)))
+    (with-current-buffer (get-buffer-create "*BUFFER LIST*")
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (setq standard-output (current-buffer))
+      (unless buff-menu-use-header-line
+        (let ((underline (if (char-displayable-p #x2014) #x2014 ?-)))
+          (insert header
+                  (apply 'string
+                         (mapcar #'(lambda (c)
+                                     (if (memq c '(?\n ?\s)) c underline))
+                                 header)))))
+      ;; Collect info for every buffer we're interested in.
+      (dolist
+         (buffer
+            (or
+              buffer-list ;; a
+              (and frame-bufs-mode  (frame-bufs-buffer-list (selected-frame) frame-bufs-full-list)) ;; b
+              (buffer-list (and (boundp 'buff-menu-use-frame-buffer-list) buff-menu-use-frame-buffer-list)) ;; c
             )
-          (with-current-buffer buffer
-            (let ((name (buffer-name))
-                  (file buffer-file-name))
-              (unless (and (null buffer-list)
-                           (or
-                            ;; Don't mention internal buffers.
-                            (and (string= (substring name 0 1) " ") (null file))
-                            ;; Maybe don't mention buffers without files.
-                            (and files-only (not file))
-                            ;; (string= name "*BUFFER LIST*")
-                            ))
-                ;; Otherwise output info.
-                (let ((mode (concat (format-mode-line mode-name nil nil buffer)
-                                    (if mode-line-process
-                                        (format-mode-line mode-line-process
-                                                          nil nil buffer))))
-                      (bits 
-                       (concat
-                        (if (eq buffer old-buffer) "." " ")
-                        ;; Handle readonly status.  The output buffer
-                        ;; is special cased to appear readonly; it is
-                        ;; actually made so at a later date.
-                        (if (or (eq buffer standard-output)
-                                buffer-read-only)
-                            "%" " ")
-                        ;; Identify modified buffers.
-                        (if (buffer-modified-p) "*" " ")
-                        ;; associated status
-                        (if frame-bufs-mode
-                            (frame-bufs-bit-info buffer)
-                          "")
-                        ;; Space separator.
-                        " ")))
-                  (unless file
-                    ;; No visited file.  Check local value of
-                    ;; list-buffers-directory and, for Info buffers,
-                    ;; Info-current-file.
-                    (cond ((and (boundp 'list-buffers-directory)
-                                list-buffers-directory)
-                           (setq file list-buffers-directory))
-                          ((eq major-mode 'Info-mode)
-                           (setq file Info-current-file)
-                           (cond
-                            ((equal file "dir")
-                             (setq file "*Info Directory*"))
-                            ((eq file 'apropos)
-                             (setq file "*Info Apropos*"))
-                            ((eq file 'history)
-                             (setq file "*Info History*"))
-                            ((eq file 'toc)
-                             (setq file "*Info TOC*"))
-                            ((not (stringp file))  ;; avoid errors
-                             (setq file nil))
-                            (t
-                             (setq file (concat "("
-                                                (file-name-nondirectory file)
-                                                ") "
-                                                Info-current-node)))))))
-                  (push (list buffer bits name (buffer-size) mode file)
-                        list))))))
-        ;; Preserve the original buffer-list ordering, just in case.
-        (setq list (nreverse list))
-        ;; Place the buffers's info in the output buffer, sorted if necessary.
-        (dolist (buffer
-                 (if buff-menu-sort-column
-                     (sort list
-                           (if (eq buff-menu-sort-column 3)
-                               (lambda (a b)
-                                 (< (nth buff-menu-sort-column a)
-                                    (nth buff-menu-sort-column b)))
+          )
+        (with-current-buffer buffer
+          (let ((name (buffer-name))
+                (file buffer-file-name))
+            (unless (and (null buffer-list)
+                         (or
+                          ;; Don't mention internal buffers.
+                          (and (string= (substring name 0 1) " ") (null file))
+                          ;; Maybe don't mention buffers without files.
+                          (and files-only (not file))
+                          ;; (string= name "*BUFFER LIST*")
+                          ))
+              ;; Otherwise output info.
+              (let ((mode (concat (format-mode-line mode-name nil nil buffer)
+                                  (if mode-line-process
+                                      (format-mode-line mode-line-process
+                                                        nil nil buffer))))
+                    (bits 
+                     (concat
+                      (if (eq buffer old-buffer) "." " ")
+                      ;; Handle readonly status.  The output buffer
+                      ;; is special cased to appear readonly; it is
+                      ;; actually made so at a later date.
+                      (if (or (eq buffer standard-output)
+                              buffer-read-only)
+                          "%" " ")
+                      ;; Identify modified buffers.
+                      (if (buffer-modified-p) "*" " ")
+                      ;; associated status
+                      (if frame-bufs-mode
+                          (frame-bufs-bit-info buffer)
+                        "")
+                      ;; Space separator.
+                      " ")))
+                (unless file
+                  ;; No visited file.  Check local value of
+                  ;; list-buffers-directory and, for Info buffers,
+                  ;; Info-current-file.
+                  (cond ((and (boundp 'list-buffers-directory)
+                              list-buffers-directory)
+                         (setq file list-buffers-directory))
+                        ((eq major-mode 'Info-mode)
+                         (setq file Info-current-file)
+                         (cond
+                          ((equal file "dir")
+                           (setq file "*Info Directory*"))
+                          ((eq file 'apropos)
+                           (setq file "*Info Apropos*"))
+                          ((eq file 'history)
+                           (setq file "*Info History*"))
+                          ((eq file 'toc)
+                           (setq file "*Info TOC*"))
+                          ((not (stringp file))  ;; avoid errors
+                           (setq file nil))
+                          (t
+                           (setq file (concat "("
+                                              (file-name-nondirectory file)
+                                              ") "
+                                              Info-current-node)))))))
+                (push (list buffer bits name (buffer-size) mode file)
+                      list))))))
+      ;; Preserve the original buffer-list ordering, just in case.
+      (setq list (nreverse list))
+      ;; Place the buffers's info in the output buffer, sorted if necessary.
+      (dolist (buffer
+               (if buff-menu-sort-column
+                   (sort list
+                         (if (eq buff-menu-sort-column 3)
                              (lambda (a b)
-                               (string< (nth buff-menu-sort-column a)
-                                        (nth buff-menu-sort-column b)))))
-                   list))
-          (when (eq (car buffer) old-buffer)
-            (setq desired-point (point)))
-          (insert (cadr buffer)
-                  ;; Put the buffer name into a text property
-                  ;; so we don't have to extract it from the text.
-                  ;; This way we avoid problems with unusual buffer names.
-                  (let ((name (nth 2 buffer))
-                        (size (int-to-string (nth 3 buffer))))
-                    (buff-menu-buffer+size name size
-                                             `(buffer-name ,name
-                                                           buffer ,(car buffer)
-                                                           font-lock-face buff-menu-buffer-face
-                                                           mouse-face highlight
-                                                           help-echo
-                                                           ,(if (>= (length name)
-                                                                    (- buff-menu-buffer+size-width
-                                                                       (max (length size) 3)
-                                                                       2))
-                                                                name
-                                                              "mouse-2: select this buffer"))))
-                  "  "
-                  (if (> (string-width (nth 4 buffer)) buff-menu-mode-width)
-                      (truncate-string-to-width (nth 4 buffer)
-                                                buff-menu-mode-width)
-                    (nth 4 buffer)))
-          (when (nth 5 buffer)
-            (indent-to (+ buff-menu-buffer-column buff-menu-buffer+size-width
-                          buff-menu-mode-width 4) 1)
-            (princ (abbreviate-file-name (nth 5 buffer))))
-          (princ "\n"))
-        (buff-menu-mode)
-        (setq buff-menu-files-only files-only)
-        (when (boundp 'buff-menu--buffers)
-          (setq buff-menu--buffers buffer-list))
-        (when buff-menu-use-header-line
-          (setq header-line-format header))
-        ;; DESIRED-POINT doesn't have to be set; it is not when the
-        ;; current buffer is not displayed for some reason.
-        (when desired-point
-          (goto-char desired-point))
-        (set-buffer-modified-p nil)
-        (current-buffer)))))
-
-
-
-;; Criteria That Control Buffer-Frame Association
-;; ==============================================
-
-;; The association between buffers and frames is dynamic:  if a buffer is
-;; selected on a frame, then it becomes associated with that frame.  Note,
-;; then, that a buffer can be associated with more than one frame.
-
-;; In addition, several other variables control which buffers automatically
-;; become associated with a frame:
-
-;; o If `frame-bufs-include-displayed-buffers' is non-nil, then buffers that
-;;   are merely displayed on a frame become associated with the frame, even
-;;   if they have not been selected.
-
-;; o If a buffer's name is a member of `frame-bufs-always-include-names' then
-;;   that buffer is automatically associated with every frame.  The default
-;;   value is ("*scratch*").
-
-;; o Three variables control which buffers are associated with a newly created
-;;   frame:
-;;
-;;   - `frame-bufs-new-frames-inherit': If non-nil, then the buffers
-;;      associated with a new frame include (at least) the buffers that were
-;;      associated with the new frame's "parent," i.e., the frame that was
-;;      selected when the new frame was created.
-;;   - `frame-bufs-include-new-buffers': If non-nil, and the command that
-;;      creates a new frame also creates new buffers, the new buffers are
-;;      associated with the new frame.  (This applies only to buffers that
-;;      are created *after* the new frame is created.)
-;;   - `frame-bufs-include-init-buffer':  If non-nil, then the buffer that is
-;;      current when a new frame is created will be associated with the new
-;;      frame.  If nil, it will not.  (Note that
-;;      frame-bufs-new-frames-inherit takes precedence over this
-;;      variable.  Also note:  If the buffer in question is displayed on the
-;;      new frame when the frame-creating command terminates, it will still
-;;      be associated with the new frame.)
-
-;; Other Commands and Features
-;; ===========================
-
-;; o If `frame-bufs-use-buffer-predicate' is non-nil, each frame's buffer
-;;   predicate is set so that `other-buffer' will prefer buffers associated
-;;   with the selected frame.  Thus, when a buffer is removed from a window
-;;   and automatically replaced with another (as happens, say, when one kills
-;;   a buffer), the newly displayed buffer will, if possible, be another
-;;   frame-associated buffer.  The default value of this variable is t.
-
-;; Frame-bufs provides three other commands that are available everywhere,
-;; not just in the buffer menu:
-
-;; o `frame-bufs-dismiss-buffer' is somewhat analogous to `bury-buffer'.  It
-;;   removes a buffer from the list of buffers associated with a frame, and
-;;   if that buffer is displayed in any windows on the selected frame, it is
-;;   replaced by another buffer (if `frame-bufs-use-buffer-predicate' is
-;;   non-nil, the will be a buffer associated with the selected frame, if
-;;   possible).  When called with no arguments, it acts on the current
-;;   buffer, severing its association with the selected frame.
-
-;; o `frame-bufs-reset-frame' resets a frame's associated-buffer list;
-;;   specifically, it sets the list of associated buffers to the list of
-;;   buffers that have been selected on the frame.  When called with no
-;;   argument, it acts on the current frame.
-
-;; o `frame-bufs-reset-all-frames' resets the associated buffers of all
-;;   frames.
-
-;; By default, none of these commands has a key binding.
-
-;; o The indicator bit used for frame-associated buffers (default `o') can be
-;;   set via the variable `frame-bufs-associated-buffer-bit'.
-
-;; o The strings used to indicate frame-list/full-list state in the buffer
-;;   menu's mode line can be changed by setting the variables
-;;   `frame-bufs-mode-line-frame-list-string' and
-;;   `frame-bufs-mode-line-full-list-string'.  The mode-line indication can
-;;   be turned off by setting `frame-bufs-mode-line-indication' to
-;;   nil.  (This latter variable can be set to any valid mode-line construct;
-;;   users setting this variable to a custom mode-line construct will
-;;   probably want to make use of the variable `frame-bufs-full-list'.)
-
-
-;; o To use a frame's associated-buffer list from within a Lisp progam, it is
-;;   recommended that you work with the list returned by the function
-;;   `frame-bufs-buffer-list'; don't use the value of the
-;;   frame-bufs-buffer-list frame parameter.  The latter can contain internal
-;;   buffers (buffers whose names starts with a space) and dead buffers; it
-;;   is not guaranteed to respect `frame-bufs-always-include-names'; and its
-;;   order is meaningless.  The list returned by `frame-bufs-buffer-list'
-;;   will contain only live, non-internal buffers; be updated to reflect the
-;;   current value of frame-bufs-always-include-names; and be sorted
-;;   stably by selection order on the current frame.
-
+                               (< (nth buff-menu-sort-column a)
+                                  (nth buff-menu-sort-column b)))
+                           (lambda (a b)
+                             (string< (nth buff-menu-sort-column a)
+                                      (nth buff-menu-sort-column b)))))
+                 list))
+        (when (eq (car buffer) old-buffer)
+          (setq desired-point (point)))
+        (insert (cadr buffer)
+                ;; Put the buffer name into a text property
+                ;; so we don't have to extract it from the text.
+                ;; This way we avoid problems with unusual buffer names.
+                (let ((name (nth 2 buffer))
+                      (size (int-to-string (nth 3 buffer))))
+                  (buff-menu-buffer+size name size
+                                           `(buffer-name ,name
+                                                         buffer ,(car buffer)
+                                                         font-lock-face buff-menu-buffer-face
+                                                         mouse-face highlight
+                                                         help-echo
+                                                         ,(if (>= (length name)
+                                                                  (- buff-menu-buffer+size-width
+                                                                     (max (length size) 3)
+                                                                     2))
+                                                              name
+                                                            "mouse-2: select this buffer"))))
+                "  "
+                (if (> (string-width (nth 4 buffer)) buff-menu-mode-width)
+                    (truncate-string-to-width (nth 4 buffer)
+                                              buff-menu-mode-width)
+                  (nth 4 buffer)))
+        (when (nth 5 buffer)
+          (indent-to (+ buff-menu-buffer-column buff-menu-buffer+size-width
+                        buff-menu-mode-width 4) 1)
+          (princ (abbreviate-file-name (nth 5 buffer))))
+        (princ "\n"))
+      (buff-menu-mode)
+      (setq buff-menu-files-only files-only)
+      (when (boundp 'buff-menu--buffers)
+        (setq buff-menu--buffers buffer-list))
+      (when buff-menu-use-header-line
+        (setq header-line-format header))
+      ;; DESIRED-POINT doesn't have to be set; it is not when the
+      ;; current buffer is not displayed for some reason.
+      (when desired-point
+        (goto-char desired-point))
+      (set-buffer-modified-p nil)
+      (current-buffer))))
 
 ;;; ---------------------------------------------------------------------
 ;;; User Options
@@ -370,60 +275,55 @@ itself."
 
 (defcustom frame-bufs-use-buffer-predicate t
   "If non-nil, frame-bufs adjusts the buffer-predicate frame parameter of every frame.
-Specifically, frame-bufs sets the buffer predicate of each frame
-so that `other-buffer' will prefer buffers associated with that
-frame.  If nil, `other-buffer' does not prefer frame-associated buffers.
-
-Changes to this variable do not take effect until the
-mode-function `frame-bufs-mode' is run."
+  Specifically, frame-bufs sets the buffer predicate of each frame
+  so that `other-buffer' will prefer buffers associated with that
+  frame.  If nil, `other-buffer' does not prefer frame-associated buffers.
+  Changes to this variable do not take effect until the
+  mode-function `frame-bufs-mode' is run."
   :group 'frame-bufs
   :type 'boolean)
 
 (defcustom frame-bufs-always-include-names '("*LAWLIST*")
   "If a buffer's name is in this list, that buffer is associated with every frame.
-The value of the variable should be a list of strings."
+  The value of the variable should be a list of strings."
   :group 'frame-bufs
   :type '(repeat string))
 
 (defcustom frame-bufs-include-displayed-buffers t
   "If non-nil, buffers displayed on a frame becomes associated with it.
-If nil, buffers becomes associated with a frame only if they are
-selected on that frame, not merely displayed."
+  If nil, buffers becomes associated with a frame only if they are
+  selected on that frame, not merely displayed."
   :group 'frame-bufs
   :type 'boolean)
-
 
 (defcustom frame-bufs-include-new-buffers nil
   "Include new buffers in a new frame's associated-buffer list.
-If non-nil, and the command that creates a new frame also creates
-new buffers, those buffers will be associated with the new frame,
-even if they have not been selected.  (Buffers created before the
-new frame is created are not affected by this variable.)"
+  If non-nil, and the command that creates a new frame also creates
+  new buffers, those buffers will be associated with the new frame,
+  even if they have not been selected.  (Buffers created before the
+  new frame is created are not affected by this variable.)"
   :group 'frame-bufs
   :type 'boolean)
 
-
 (defcustom frame-bufs-new-frames-inherit nil
   "Whether a new frame inherits the associations  of its \"parent\".
-If non-nil, the associated buffers of a newly created frame
-include (at least) those buffers that were associated with the
-frame that was selected when the frame-creating command was
-called."
+ If non-nil, the associated buffers of a newly created frame
+  include (at least) those buffers that were associated with the
+  frame that was selected when the frame-creating command was called."
   :group 'frame-bufs
   :type 'boolean)
 
 
 (defcustom frame-bufs-include-init-buffer nil
   "Whether a new frame's associated buffers include the last buffer before creation.
-If non-nil, then the buffer that is current when a frame-creating
-command is called--the \"init buffer\"--is associated with the
-new frame.  If nil, it is not.
-
-Note:  If the init buffer is displayed on the new frame after the
-frame-creating command terminates, then it will be associated
-with the new frame, even if this variable is nil.  Also note:
-`frame-bufs-new-frames-inherit' takes precedence over this
-variable."
+  If non-nil, then the buffer that is current when a frame-creating
+  command is called--the \"init buffer\"--is associated with the
+  new frame.  If nil, it is not.
+  Note:  If the init buffer is displayed on the new frame after the
+  frame-creating command terminates, then it will be associated
+  with the new frame, even if this variable is nil.  Also note:
+  `frame-bufs-new-frames-inherit' takes precedence over this
+  variable."
   :group 'frame-bufs
   :type 'boolean)
 
@@ -450,14 +350,13 @@ variable."
                                            "\"\n" 
                                            "mouse-1 for full list")))))
   "Mode-line indication of the buffer menu's state.
-When frame-bufs is enabled, this variable is inserted into the
-value of `mode-line-format' in the buffer menu, after
-`mode-line-buffer-identification'.  If this variable is set to
-nil, no special information appears in the mode-line.  The value
-should be a valid mode-line construct.
-
-When customizing this variable, users will probably want to make
-use of the variable `frame-bufs-full-list'."
+  When frame-bufs is enabled, this variable is inserted into the
+  value of `mode-line-format' in the buffer menu, after
+  `mode-line-buffer-identification'.  If this variable is set to
+  nil, no special information appears in the mode-line.  The value
+  should be a valid mode-line construct.
+  When customizing this variable, users will probably want to make
+  use of the variable `frame-bufs-full-list'."
   :group 'frame-bufs
   :type 'sexp)
 
@@ -529,47 +428,47 @@ Do not set this variable directly.  Use the command
 (defun frame-bufs-mode (&optional arg) 
   "Toggle frame-bufs-mode on and off.
 
-Frame-bufs-mode tracks which buffers are associated with a given
-frame (the \"frame-associated\" buffers) and extends the buffer
-menu to take advantage of this information.  The buffer menu can
-be toggled between listing all buffers and listing only
-frame-associated buffers.  
-
-When listing all buffers, there is a fourth column in the buffer
-menu after the CRM columns: the F column.  Buffers associated with the
-current frame are indicated with an `o' in this column .  When
-listing only frame-associated buffers, this fourth column is
-suppressed.  Full-list/frame-list status is also indicated in the
-mode line.
-
-The list of buffers associated with a frame can be manually
-edited from within the buffer menu.
-
-The following new commands are available in the buffer
-menu:
-
-\\[frame-bufs-toggle-full-list] -- Toggle between listing frame-associated buffers and all buffers.
-\\[frame-bufs-make-associated] -- Mark a buffer to be added to the associated buffer list.
-\\[frame-bufs-make-non-associated] -- Mark a buffer to be removed from the associated buffer list.
-
-Requested changes in frame-buffer associations are effected by
-calling `frame-bufs-menu-execute'.
-
-Buffers automatically become associated with a frame if they are
-selected in one of the frame's windows.  Further control over
-which buffers are automatically associated with a frame is
-provided by the variables
- `frame-bufs-include-displayed-buffers',
-`frame-bufs-always-include-names',
-`frame-bufs-include-new-buffers',
-`frame-bufs-new-frames-inherit', and
-`frame-bufs-include-init-buffer'.
-
-For further customization options, see the documentation of the
-variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
-`frame-bufs-mode-line-frame-list-string', 
-`frame-bufs-mode-line-full-list-string', and 
-`frame-bufs-mode-line-identification'."
+  Frame-bufs-mode tracks which buffers are associated with a given
+  frame (the \"frame-associated\" buffers) and extends the buffer
+  menu to take advantage of this information.  The buffer menu can
+  be toggled between listing all buffers and listing only
+  frame-associated buffers.  
+  
+  When listing all buffers, there is a fourth column in the buffer
+  menu after the CRM columns: the F column.  Buffers associated with the
+  current frame are indicated with an `o' in this column .  When
+  listing only frame-associated buffers, this fourth column is
+  suppressed.  Full-list/frame-list status is also indicated in the
+  mode line.
+  
+  The list of buffers associated with a frame can be manually
+  edited from within the buffer menu.
+  
+  The following new commands are available in the buffer
+  menu:
+  
+  \\[frame-bufs-toggle-full-list] -- Toggle between listing frame-associated buffers and all buffers.
+  \\[frame-bufs-make-associated] -- Mark a buffer to be added to the associated buffer list.
+  \\[frame-bufs-make-non-associated] -- Mark a buffer to be removed from the associated buffer list.
+  
+  Requested changes in frame-buffer associations are effected by
+  calling `frame-bufs-menu-execute'.
+  
+  Buffers automatically become associated with a frame if they are
+  selected in one of the frame's windows.  Further control over
+  which buffers are automatically associated with a frame is
+  provided by the variables
+   `frame-bufs-include-displayed-buffers',
+  `frame-bufs-always-include-names',
+  `frame-bufs-include-new-buffers',
+  `frame-bufs-new-frames-inherit', and
+  `frame-bufs-include-init-buffer'.
+  
+  For further customization options, see the documentation of the
+  variables `frame-bufs-associated-buffer-bit', `frame-bufs-use-buffer-predicate',
+  `frame-bufs-mode-line-frame-list-string', 
+  `frame-bufs-mode-line-full-list-string', and 
+  `frame-bufs-mode-line-identification'."
   (interactive "P")
   (setq frame-bufs-mode (if (not arg) 
                          (not frame-bufs-mode)
@@ -1093,118 +992,96 @@ Optional ARG means move up."
   ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
   (if (buffer-exists "nil")
     (kill-buffer "nil"))
-  (other-window 1)
-
-;;(tabbar-display-update)
-;;(sit-for 0)
-;;(message "%s" (buffer-name))
-;;(revert-buffer)
-;;(if (not (equal (buffer-name) "*BUFFER LIST*"))
-
-;;  (progn
-
-;;  (sound)
-
-;;  (switch-to-buffer "*BUFFER LIST*")))
-)
+  (other-window 1) )
 
 
+(defun buff-menu-sort (column)
+  "Sort the buffer menu by COLUMN."
+  (when column
+    (setq column (prefix-numeric-value column))
+    (when (< column 2)
+      (setq column 2))
+    (when (> column 5)
+      (setq column 5)))
+  (setq buff-menu-sort-column column)
+  (let ((inhibit-read-only t) l buf m1 m2)
+    (save-excursion
+      (buff-menu-beginning)
+      (while (not (eobp))
+        (when (buffer-live-p (setq buf (get-text-property (+ (point) buff-menu-buffer-column) 'buffer)))
+          (setq m1 (char-after)
+                m1 (if (memq m1 '(?> ?D)) m1)
+                m2 (char-after (+ (point) 2))
+                m2 (if (eq m2 ?S) m2))
+          (when (or m1 m2)
+            (push (list buf m1 m2) l)))
+        (forward-line)))
+    (revert-buffer)
+    (save-excursion
+      (buff-menu-beginning)
+      (while (not (eobp))
+        (when (setq buf (assq (get-text-property (+ (point) buff-menu-buffer-column) 'buffer) l))
+          (setq m1 (cadr buf)
+                m2 (cadr (cdr buf)))
+          (when m1
+            (delete-char 1)
+            (insert m1)
+            (backward-char 1))
+          (when m2
+            (forward-char 2)
+            (delete-char 1)
+            (insert m2)))
+        (forward-line)))))
 
 
-;; The definitions of the following three commands in buff-menu.el hard-code
-;; the default value (4) of buff-menu-buffer-column.  We need them to
-;; respect other values of buff-menu-buffer-column.  That's the only change
-;; made to them.
+(defun buff-menu-buffer+size (name size &optional name-props size-props)
+  (if (> (+ (string-width name) (string-width size) 2)
+         buff-menu-buffer+size-width)
+      (setq name
+            (let ((tail
+                   (if (string-match "<[0-9]+>$" name)
+                       (match-string 0 name)
+                     "")))
+              (concat (truncate-string-to-width
+                       name
+                       (- buff-menu-buffer+size-width
+                          (max (string-width size) 3)
+                          (string-width tail)
+                          2))
+                      buff-menu-short-ellipsis
+                      tail)))
+    ;; Don't put properties on (buffer-name).
+    (setq name (copy-sequence name)))
+  (add-text-properties 0 (length name) name-props name)
+  (add-text-properties 0 (length size) size-props size)
+  (let ((name+space-width (- buff-menu-buffer+size-width
+                             (string-width size))))
+    (concat name
+            (propertize (make-string (- name+space-width (string-width name))
+                                     ?\s)
+                        'display `(space :align-to ,(+ buff-menu-buffer-column name+space-width)))
+            size)))
 
-(unless (featurep 'buff-menu+)
-  (defun buff-menu-sort (column)
-    "Sort the buffer menu by COLUMN."
-    (when column
-      (setq column (prefix-numeric-value column))
-      (when (< column 2)
-        (setq column 2))
-      (when (> column 5)
-        (setq column 5)))
-    (setq buff-menu-sort-column column)
-    (let ((inhibit-read-only t) l buf m1 m2)
-      (save-excursion
-        (buff-menu-beginning)
-        (while (not (eobp))
-          (when (buffer-live-p (setq buf (get-text-property (+ (point) buff-menu-buffer-column) 'buffer)))
-            (setq m1 (char-after)
-                  m1 (if (memq m1 '(?> ?D)) m1)
-                  m2 (char-after (+ (point) 2))
-                  m2 (if (eq m2 ?S) m2))
-            (when (or m1 m2)
-              (push (list buf m1 m2) l)))
-          (forward-line)))
-      (revert-buffer)
-      (save-excursion
-        (buff-menu-beginning)
-        (while (not (eobp))
-          (when (setq buf (assq (get-text-property (+ (point) buff-menu-buffer-column) 'buffer) l))
-            (setq m1 (cadr buf)
-                  m2 (cadr (cdr buf)))
-            (when m1
-              (delete-char 1)
-              (insert m1)
-              (backward-char 1))
-            (when m2
-              (forward-char 2)
-              (delete-char 1)
-              (insert m2)))
-          (forward-line))))))
-
-(unless (featurep 'buff-menu+)
-  (defun buff-menu-buffer+size (name size &optional name-props size-props)
-    (if (> (+ (string-width name) (string-width size) 2)
-           buff-menu-buffer+size-width)
-        (setq name
-              (let ((tail
-                     (if (string-match "<[0-9]+>$" name)
-                         (match-string 0 name)
-                       "")))
-                (concat (truncate-string-to-width
-                         name
-                         (- buff-menu-buffer+size-width
-                            (max (string-width size) 3)
-                            (string-width tail)
-                            2))
-                        buff-menu-short-ellipsis
-                        tail)))
-      ;; Don't put properties on (buffer-name).
-      (setq name (copy-sequence name)))
-    (add-text-properties 0 (length name) name-props name)
-    (add-text-properties 0 (length size) size-props size)
-    (let ((name+space-width (- buff-menu-buffer+size-width
-                               (string-width size))))
-      (concat name
-              (propertize (make-string (- name+space-width (string-width name))
-                                       ?\s)
-                          'display `(space :align-to ,(+ buff-menu-buffer-column name+space-width)))
-              size))))
-
-(unless (featurep 'buff-menu+)
-  (defun buff-menu-revert-function (ignore1 ignore2)
-    (or (eq buffer-undo-list t)
-        (setq buffer-undo-list nil))
-    ;; We can not use save-excursion here.  The buffer gets erased.
-    (let ((ocol (current-column))
-          (oline (progn (move-to-column buff-menu-buffer-column)
-                        (get-text-property (point) 'buffer)))
-          (prop (point-min))
-          ;; do not make undo records for the reversion.
-          (buffer-undo-list t))
-      (with-current-buffer (window-buffer)
-        (frame-bufs-list-buffers-noselect buff-menu-files-only))
-      (while (setq prop (next-single-property-change prop 'buffer))
-        (when (eq (get-text-property prop 'buffer) oline)
-          (goto-char prop)
-          (move-to-column ocol)))
-      (when (eobp)
-        (goto-char (point-min))
-        (unless buff-menu-use-header-line
-          (forward-line 2))))))
+(defun buff-menu-revert-function (ignore1 ignore2)
+  (or (eq buffer-undo-list t)
+      (setq buffer-undo-list nil))
+  ;; We can not use save-excursion here.  The buffer gets erased.
+  (let ((ocol (current-column))
+        (oline (progn (move-to-column buff-menu-buffer-column)
+                      (get-text-property (point) 'buffer)))
+        (prop (point-min))
+        ;; do not make undo records for the reversion.
+        (buffer-undo-list t))
+    (with-current-buffer (window-buffer)
+      (frame-bufs-list-buffers-noselect buff-menu-files-only))
+    (while (setq prop (next-single-property-change prop 'buffer))
+      (when (eq (get-text-property prop 'buffer) oline)
+        (goto-char prop)
+        (move-to-column ocol)))
+    (when (eobp)
+      (goto-char (point-min))
+      (unless buff-menu-use-header-line
+        (forward-line 2)))))
 
 ;;; ---------------------------------------------------------------------
 ;;;  Electric Buffer List Accomodation
@@ -1246,10 +1123,10 @@ Optional ARG means move up."
 
 (defcustom buff-menu-use-frame-buffer-list t
   "If non-nil, the Buffer Menu uses the selected frame's buffer list.
-Buffers that were never selected in that frame are listed at the end.
-If the value is nil, the Buffer Menu uses the global buffer list.
-This variable matters if the Buffer Menu is sorted by visited order,
-as it is by default."
+  Buffers that were never selected in that frame are listed at the end.
+  If the value is nil, the Buffer Menu uses the global buffer list.
+  This variable matters if the Buffer Menu is sorted by visited order,
+  as it is by default."
   :type 'boolean
   :group 'buff-menu-group
   :version "22.1")
@@ -1257,23 +1134,23 @@ as it is by default."
 ;; This should get updated & resorted when you click on a column heading
 (defvar buff-menu-sort-column nil
   "Which column to sort the menu on.
-Use 2 to sort by buffer names, or 5 to sort by file names.
-A nil value means sort by visited order (the default).")
+  Use 2 to sort by buffer names, or 5 to sort by file names.
+  A nil value means sort by visited order (the default).")
 
 (defconst buff-menu-buffer-column 4)
 
 (defvar buff-menu-files-only nil
   "Non-nil if the current buff-menu lists only file buffers.
-This variable determines whether reverting the buffer lists only
-file buffers.  It affects both manual reverting and reverting by
-Auto Revert Mode.")
+  This variable determines whether reverting the buffer lists only
+  file buffers.  It affects both manual reverting and reverting by
+  Auto Revert Mode.")
 (make-variable-buffer-local 'buff-menu-files-only)
 
 (defvar buff-menu--buffers nil
   "If non-nil, list of buffers shown in the current buff-menu.
-This variable determines whether reverting the buffer lists only
-these buffers.  It affects both manual reverting and reverting by
-Auto Revert Mode.")
+  This variable determines whether reverting the buffer lists only
+  these buffers.  It affects both manual reverting and reverting by
+  Auto Revert Mode.")
 (make-variable-buffer-local 'buff-menu--buffers)
 
 (defvar Info-current-file) ;; from info.el
@@ -1461,8 +1338,8 @@ Letters do not insert themselves; instead, they are commands.
 
 (defun buff-menu-toggle-files-only (arg)
   "Toggle whether the current buff-menu displays only file buffers.
-With a positive ARG display only file buffers.  With zero or
-negative ARG, display other buffers as well."
+  With a positive ARG display only file buffers.  With zero or
+  negative ARG, display other buffers as well."
   (interactive "P")
   (setq buff-menu-files-only
 	(cond ((not arg) (not buff-menu-files-only))
@@ -1490,20 +1367,20 @@ negative ARG, display other buffers as well."
 
 (defun buff-menu (&optional arg)
   "Make a menu of buffers so you can save, delete or select them.
-With argument, show only buffers that are visiting files.
-Type ? after invocation to get help on commands available.
-Type q to remove the buffer menu from the display.
+  With argument, show only buffers that are visiting files.
+  Type ? after invocation to get help on commands available.
+  Type q to remove the buffer menu from the display.
 
-The first column shows `>' for a buffer you have
-marked to be displayed, `D' for one you have marked for
-deletion, and `.' for the current buffer.
-
-The C column has a `.' for the buffer from which you came.
-The R column has a `%' if the buffer is read-only.
-The M column has a `*' if it is modified,
-or `S' if you have marked it for saving.
-After this come the buffer name, its size in characters,
-its major mode, and the visited file name (if any)."
+  The first column shows `>' for a buffer you have
+  marked to be displayed, `D' for one you have marked for
+  deletion, and `.' for the current buffer.
+  
+  The C column has a `.' for the buffer from which you came.
+  The R column has a `%' if the buffer is read-only.
+  The M column has a `*' if it is modified,
+  or `S' if you have marked it for saving.
+  After this come the buffer name, its size in characters,
+  its major mode, and the visited file name (if any)."
   (interactive "P")
   (switch-to-buffer (frame-bufs-list-buffers-noselect arg))
   (message
@@ -1516,11 +1393,11 @@ its major mode, and the visited file name (if any)."
 
 (defun buff-menu-other-window (&optional arg)
   "Display a list of buffers in another window.
-With the buffer list buffer, you can save, delete or select the buffers.
-With argument, show only buffers that are visiting files.
-Type ? after invocation to get help on commands available.
-Type q to remove the buffer menu from the display.
-For more information, see the function `buff-menu'."
+  With the buffer list buffer, you can save, delete or select the buffers.
+  With argument, show only buffers that are visiting files.
+  Type ? after invocation to get help on commands available.
+  Type q to remove the buffer menu from the display.
+  For more information, see the function `buff-menu'."
   (interactive "P")
   (switch-to-buffer-other-window (frame-bufs-list-buffers-noselect arg))
   (message
@@ -1553,8 +1430,8 @@ For more information, see the function `buff-menu'."
 
 (defun buff-menu-delete (&optional arg)
   "Mark buffer on this line to be deleted by \\<buff-menu-mode-map>\\[frame-bufs-menu-execute] command.
-Prefix arg is how many buffers to delete.
-Negative arg means delete backwards."
+  Prefix arg is how many buffers to delete.
+  Negative arg means delete backwards."
   (interactive "p")
   (when (buff-menu-no-header)
     (let ((inhibit-read-only t))
@@ -1574,7 +1451,7 @@ Negative arg means delete backwards."
 
 (defun buff-menu-delete-backwards (&optional arg)
   "Mark buffer on this line to be deleted by \\<buff-menu-mode-map>\\[frame-bufs-menu-execute] command
-and then move up one line.  Prefix arg means move that many lines."
+  and then move up one line.  Prefix arg means move that many lines."
   (interactive "p")
   (buff-menu-delete (- (or arg 1))))
 
@@ -1608,9 +1485,9 @@ and then move up one line.  Prefix arg means move that many lines."
 
 (defun buff-menu-select ()
   "Select this line's buffer; also display buffers marked with `>'.
-You can mark buffers with the \\<buff-menu-mode-map>\\[buff-menu-mark] command.
-This command deletes and replaces all the previously existing windows
-in the selected frame."
+  You can mark buffers with the \\<buff-menu-mode-map>\\[buff-menu-mark] command.
+  This command deletes and replaces all the previously existing windows
+  in the selected frame."
   (interactive)
   (let ((buff (buff-menu-buffer t))
 	(menu (current-buffer))
@@ -1695,7 +1572,7 @@ in the selected frame."
 
 (defun buff-menu-switch-other-window ()
   "Make the other window select this line's buffer.
-The current window remains selected."
+  The current window remains selected."
   (interactive)
   (let ((pop-up-windows t)
 	same-window-buffer-names
@@ -1800,6 +1677,98 @@ The current window remains selected."
 			  (if column (downcase name) "visited order"))
 	      'mouse-face 'highlight
 	      'keymap buff-menu-sort-button-map))
+
+;; Criteria That Control Buffer-Frame Association
+;; ==============================================
+
+;; The association between buffers and frames is dynamic:  if a buffer is
+;; selected on a frame, then it becomes associated with that frame.  Note,
+;; then, that a buffer can be associated with more than one frame.
+
+;; In addition, several other variables control which buffers automatically
+;; become associated with a frame:
+
+;; o If `frame-bufs-include-displayed-buffers' is non-nil, then buffers that
+;;   are merely displayed on a frame become associated with the frame, even
+;;   if they have not been selected.
+
+;; o If a buffer's name is a member of `frame-bufs-always-include-names' then
+;;   that buffer is automatically associated with every frame.  The default
+;;   value is ("*scratch*").
+
+;; o Three variables control which buffers are associated with a newly created
+;;   frame:
+;;
+;;   - `frame-bufs-new-frames-inherit': If non-nil, then the buffers
+;;      associated with a new frame include (at least) the buffers that were
+;;      associated with the new frame's "parent," i.e., the frame that was
+;;      selected when the new frame was created.
+;;   - `frame-bufs-include-new-buffers': If non-nil, and the command that
+;;      creates a new frame also creates new buffers, the new buffers are
+;;      associated with the new frame.  (This applies only to buffers that
+;;      are created *after* the new frame is created.)
+;;   - `frame-bufs-include-init-buffer':  If non-nil, then the buffer that is
+;;      current when a new frame is created will be associated with the new
+;;      frame.  If nil, it will not.  (Note that
+;;      frame-bufs-new-frames-inherit takes precedence over this
+;;      variable.  Also note:  If the buffer in question is displayed on the
+;;      new frame when the frame-creating command terminates, it will still
+;;      be associated with the new frame.)
+
+;; Other Commands and Features
+;; ===========================
+
+;; o If `frame-bufs-use-buffer-predicate' is non-nil, each frame's buffer
+;;   predicate is set so that `other-buffer' will prefer buffers associated
+;;   with the selected frame.  Thus, when a buffer is removed from a window
+;;   and automatically replaced with another (as happens, say, when one kills
+;;   a buffer), the newly displayed buffer will, if possible, be another
+;;   frame-associated buffer.  The default value of this variable is t.
+
+;; Frame-bufs provides three other commands that are available everywhere,
+;; not just in the buffer menu:
+
+;; o `frame-bufs-dismiss-buffer' is somewhat analogous to `bury-buffer'.  It
+;;   removes a buffer from the list of buffers associated with a frame, and
+;;   if that buffer is displayed in any windows on the selected frame, it is
+;;   replaced by another buffer (if `frame-bufs-use-buffer-predicate' is
+;;   non-nil, the will be a buffer associated with the selected frame, if
+;;   possible).  When called with no arguments, it acts on the current
+;;   buffer, severing its association with the selected frame.
+
+;; o `frame-bufs-reset-frame' resets a frame's associated-buffer list;
+;;   specifically, it sets the list of associated buffers to the list of
+;;   buffers that have been selected on the frame.  When called with no
+;;   argument, it acts on the current frame.
+
+;; o `frame-bufs-reset-all-frames' resets the associated buffers of all
+;;   frames.
+
+;; By default, none of these commands has a key binding.
+
+;; o The indicator bit used for frame-associated buffers (default `o') can be
+;;   set via the variable `frame-bufs-associated-buffer-bit'.
+
+;; o The strings used to indicate frame-list/full-list state in the buffer
+;;   menu's mode line can be changed by setting the variables
+;;   `frame-bufs-mode-line-frame-list-string' and
+;;   `frame-bufs-mode-line-full-list-string'.  The mode-line indication can
+;;   be turned off by setting `frame-bufs-mode-line-indication' to
+;;   nil.  (This latter variable can be set to any valid mode-line construct;
+;;   users setting this variable to a custom mode-line construct will
+;;   probably want to make use of the variable `frame-bufs-full-list'.)
+
+
+;; o To use a frame's associated-buffer list from within a Lisp progam, it is
+;;   recommended that you work with the list returned by the function
+;;   `frame-bufs-buffer-list'; don't use the value of the
+;;   frame-bufs-buffer-list frame parameter.  The latter can contain internal
+;;   buffers (buffers whose names starts with a space) and dead buffers; it
+;;   is not guaranteed to respect `frame-bufs-always-include-names'; and its
+;;   order is meaningless.  The list returned by `frame-bufs-buffer-list'
+;;   will contain only live, non-internal buffers; be updated to reflect the
+;;   current value of frame-bufs-always-include-names; and be sorted
+;;   stably by selection order on the current frame.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
