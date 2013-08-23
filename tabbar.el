@@ -239,7 +239,7 @@ This is the tab set displayed on the tab bar.")
 The function is passed a tab and should return a string.")
 
 (defvar tabbar-select-tab-function nil
-  "Function that select a tab.
+  "Function that selects a tab.
 The function is passed a mouse event and a tab, and should make it the
 selected tab.")
 
@@ -1272,22 +1272,6 @@ Optional argument TYPE is a mouse event type (see the function
         (unless tab
           (setq tabset (tabbar-tabs ttabset)
                 tab (car (if backward (last tabset) tabset)))) ;; this is just a setq, not an action.
-(if (equal (format "%s" (cdr tab)) "main")
-  (if (frame-exists "MAIN")
-    (switch-to-frame "MAIN")
-    (frame-exists-main)))
-(if (equal (format "%s" (cdr tab)) "system")
-  (if (frame-exists "SYSTEM")
-    (switch-to-frame "SYSTEM")
-    (frame-exists-system)))
-(if (equal (format "%s" (cdr tab)) "org")
-  (if (frame-exists "ORG")
-    (switch-to-frame "ORG")
-    (frame-exists-org)))
-(if (equal (format "%s" (cdr tab)) "wanderlust")
-  (if (frame-exists "WANDERLUST")
-    (switch-to-frame "WANDERLUST")
-    (frame-exists-wanderlust)))
         )
        (t
         ;; Cycle through visible tabs then tab groups.
