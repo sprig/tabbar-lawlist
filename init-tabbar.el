@@ -21,6 +21,11 @@
 ;; (tabbar-current-tabset 't)
 ;; (tabbar-display-update)
 ;; (sit-for 0)
+;;
+;; set current buffer -- switch to tab (function must contain &optional type)
+;; (setq wl-selected-message-buffer (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
+;; (tabbar-click-on-tab wl-selected-message-buffer type)
+
 
 (require 'tabbar)
 (require 'init-frames) ;; Use the modified version in the lawlist repository.
@@ -29,14 +34,18 @@
 (setq ido-enable-flex-matching t)
 
 (global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-buffers))))
-(define-key global-map [?\s-\~] 'tabbar-backward-group) ;; tabbar-cycle has been modified by lawlist
-(define-key global-map [?\s-\`] 'tabbar-forward-group) ;; ;; tabbar-cycle has been modified by lawlist
+(define-key global-map [?\s-\~] 'tabbar-backward-group)
+(define-key global-map [?\s-\`] 'tabbar-forward-group)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)] 'tabbar-forward-group) 
-(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
-(define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
-(define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
-(define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
+(global-set-key (kbd "<M-s-right>") 'tabbar-forward)
+(global-set-key (kbd "<M-s-left>") 'tabbar-backward)
+(define-key global-map [?\s-w] 'kill-this-buffer)
+;; (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
+(define-key global-map [?\s-o] 'lawlist-find-file)
+;; (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
+;; (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
+;; (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
 
 ;; M-x associate-current-buffer -- control+option+command+a
 (define-key global-map (kbd "<C-M-s-268632065>") 'associate-current-buffer)
@@ -56,18 +65,225 @@
       (if (buffer-exists "nil")
         (kill-buffer "nil")))))))
 
-;; Add additional hooks for specific modes that do not open files
-;; and some not so commonly used functions such as `rename-buffer`.
 
-;; linked to a defined key elsewhere -- command+o
-(defun lawlist-open-file (&optional filename &rest _wildcards)
-  "Open a file, selecting file by dialog"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST FIND FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun lawlist-find-file (&optional filename)
+  "Open a file, and maybe switch to a specific frame."
   (interactive)
-  (unless filename
-    (setq filename (ns-read-file-name "Select File to Load" "~/.0.data/" t nil)))
-  (if filename (find-file-existing filename))
-  (frames-and-tab-groups)
-  (associate-current-buffer) )
+  (unless filename (setq filename (read-file-name "Select File:  ")))
+    (display-buffer
+      (find-file filename)
+     '((lawlist-display-buffer-pop-up-frame
+        display-buffer-same-window) )))
+
+(defvar system-buffer-regexp nil
+  "*List that contains regexps which match `filename` for frame `SYSTEM`.")
+(setq system-buffer-regexp '("*scratch*" "*bbdb*" "\\*Metahelp\\*"))
+
+(defvar main-buffer-regexp nil
+  "*List that contains regexps which match `filename` for frame `MAIN`.")
+(setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet"))
+
+(defvar org-buffer-regexp nil
+  "*List that contains regexps which match `filename` for frame `ORG`.")
+(setq org-buffer-regexp '("[*]TODO[*]" "\\.org_archive" "\\.org"))
+
+(defun lawlist-regexps-match-p (regexps string)
+  (catch 'matched
+    (dolist (regexp regexps)
+      (if (string-match regexp string)
+        (throw 'matched t)))))
+
+(defun lawlist-display-buffer-pop-up-frame (&optional buffer alist)
+
+  (when (lawlist-regexps-match-p org-buffer-regexp filename)
+    (if (frame-exists "ORG")
+        (switch-to-frame "ORG")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "ORG") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "ORG"))
+        (progn
+          (make-frame)
+          (set-frame-name "ORG"))) ))
+
+  (when (lawlist-regexps-match-p main-buffer-regexp filename)
+    (if (frame-exists "MAIN")
+        (switch-to-frame "MAIN")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "MAIN") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "MAIN"))
+        (progn
+          (make-frame)
+          (set-frame-name "MAIN"))) ))
+
+  (when (lawlist-regexps-match-p system-buffer-regexp filename)
+    (if (frame-exists "SYSTEM")
+        (switch-to-frame "SYSTEM")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "SYSTEM") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "SYSTEM"))
+        (progn
+          (make-frame)
+          (set-frame-name "SYSTEM"))) ))
+
+  (when (and (not (lawlist-regexps-match-p org-buffer-regexp filename))
+          (not (lawlist-regexps-match-p main-buffer-regexp filename))
+          (not (lawlist-regexps-match-p system-buffer-regexp filename)) )
+    (if (frame-exists "MISCELLAENOUS")
+        (switch-to-frame "MISCELLAENOUS")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "MISCELLAENEOUS") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "MISCELLAENEOUS"))
+        (progn
+          (make-frame)
+          (set-frame-name "MISCELLAENEOUS"))) )) )
+
+;;  (frames-and-tab-groups)
+;;  (associate-current-buffer)
+;;  http://lists.gnu.org/archive/html/help-gnu-emacs/2013-04/msg00259.html
+
+(defun frame-exists (frame-name)
+  (not (eq nil (get-frame frame-name))))
+
+(defun get-frame (frame)
+  "Return a frame, if any, named FRAME (a frame or a string).
+  If none, return nil.
+  If FRAME is a frame, it is returned."
+  (cond ((framep frame) frame)
+        ((stringp frame)
+         (catch 'get-a-frame-found
+           (dolist (fr (frame-list))
+             (when (string= frame (get-frame-name fr))
+               (throw 'get-a-frame-found fr)))
+           nil))
+        (t
+         (error
+          "Function `get-frame-name': Arg neither a string nor a frame: `%s'"
+          frame))))
+
+(defun switch-to-frame (frame-name)
+  (let ((frames (frame-list)))
+    (catch 'break
+      (while frames
+        (let ((frame (car frames)))
+          (if (equal (frame-parameter frame 'name) frame-name)
+              (throw 'break (select-frame-set-input-focus frame))
+            (setq frames (cdr frames))))))))
+
+(add-to-list 'display-buffer-alist
+  '("\\(\\*Metahelp\\*\\|\\*Help\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+
+(defun nofile-display-buffer-pop-up-frame (&optional buffer alist)
+    (if (frame-exists "SYSTEM")
+        (switch-to-frame "SYSTEM")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "SYSTEM") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "SYSTEM"))
+        (progn
+          (make-frame)
+          (set-frame-name "SYSTEM"))) ))
+
+(defun wanderlust-display-buffer-pop-up-frame ()
+    (if (frame-exists "WANDERLUST")
+        (switch-to-frame "WANDERLUST")
+      ;; If unnamed frame exists, then take control of it.
+      (dolist (frame (frame-list))
+        (if (and
+            (not (equal "MAIN" (frame-parameter frame 'name)))
+            (not (equal "SYSTEM" (frame-parameter frame 'name)))
+            (not (equal "ORG" (frame-parameter frame 'name)))
+            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+          (progn
+            (switch-to-frame (frame-parameter frame 'name))
+            (set-frame-name "WANDERLUST") )))
+      ;; If dolist found no unnamed frame, then create / name it.
+      (if (not (frame-exists "WANDERLUST"))
+        (progn
+          (make-frame)
+          (set-frame-name "WANDERLUST"))) ))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(add-hook 'org-agenda-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-draft-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-summary-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-folder-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'emacs-startup-hook
+  (lambda ()
+    (require 'init-tabbar)
+;;    (toggle-frame-maximized)
+;;    (refresh-frames-buffers)  ;; Needed when desktop.el restores files.
+;;    (frames-and-tab-groups)
+  ))
 
 (add-hook 'find-file-hook
   (lambda ()
@@ -75,31 +291,10 @@
 ;;    (associate-current-buffer)
   ))
 
-(add-hook 'org-agenda-mode-hook
+(add-hook 'mime-view-mode-hook
   (lambda ()
-    (frames-and-tab-groups)
+;;    (frames-and-tab-groups)
   ))
-
-(add-hook 'wl-draft-mode-hook
-  (lambda ()
-    (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-summary-mode-hook
-  (lambda ()
-    (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-folder-mode-hook
-  (lambda ()
-    (frames-and-tab-groups)
-  ))
-
-(add-hook 'emacs-startup-hook
-  (lambda ()
-    (require 'init-tabbar)
-    (refresh-frames-buffers)  ;; Needed when desktop.el restores files.
-))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -118,7 +313,7 @@
   (setq buffer-focus (buffer-name))
   (setq buffers-group-focus (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
   (setq all-buffers (cdr (tabbar-buffer-list)))
-  (setq all-groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
+;;  (setq all-groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
   (setq all-tabs-per-group-focus (tabbar-tabs (tabbar-get-tabsets-tabset)))
   (setq cdr-all-tabs-per-group-focus (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
   (setq car-all-tabs-per-group-focus (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
@@ -141,12 +336,13 @@
   (message "Buffer - Focus:  %s \n" buffer-focus)
   (message "Buffers Group Focus:  %s \n" buffers-group-focus)
   (message "All Buffers:  %s \n" all-buffers)
-  (message "All Groups:  %s \n" all-groups)
+;; (message "All Groups:  %s \n" all-groups)
   (message "All Tabs (Per Group) -- Focus:  %s \n" all-tabs-per-group-focus)
   (message "\"cdr\" of \"All Tabs (Per Group) -- Focus\":  %s \n" cdr-all-tabs-per-group-focus)
   (message "\"car\" of \"All Tabs (Per Group) -- Focus\":  %s \n" car-all-tabs-per-group-focus)
   (message "-------------------------------------------------------- \n")
   (message "\"M-x delete-window\" to close this window.")
+  (goto-char (point-max))
   (scroll-down 20))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -170,7 +366,7 @@
 
 ;; The variable `tabbar+displayed-buffers` is used to show
 ;; buffers with astericks when switching between tab groups
-;; with either `tabbar-forward-group` or `tabbar-backward-group`.
+;; with either `lawlist-tabbar-forward-group` or `lawlist-tabbar-backward-group`.
 ;; The function `buffer-lawlist-function` hides buffers with
 ;; astericks -- tabbar+displayed-buffers show select buffers.
 ;; For example, the buffers "*scratch*" and "*Messages* can be
@@ -198,14 +394,33 @@
   (tabs (delq nil
   (mapcar (lambda (buf)
   (let ((name (buffer-name buf)))
-  (when (and (not (string-match "*lawlist:.**" name)) ;; still not sure what this line does
-  (or (string-match re name)
-  (not (memq (aref name 0) hides))))
+  (when (or 
+    (string-match "^*WL:Message*" name) ;; without the ^ will display the " Original . . ."
+    (string-match "*~/.0.data/.** output*" name)
+    (string-match re name)
+    (not (memq (aref name 0) hides)))
   buf)))
   (buffer-list)))))
   (if (memq cur-buf tabs)
   tabs
   (cons cur-buf tabs))))
+
+;;  (defun buffer-lawlist-function ()
+;;    (let* ((hides (list ?\ ?\*))
+;;    (re (regexp-opt tabbar+displayed-buffers))
+;;    (cur-buf (current-buffer))
+;;    (tabs (delq nil
+;;    (mapcar (lambda (buf)
+;;    (let ((name (buffer-name buf)))
+;;    (when (and (not (string-match "*lawlist:.**" name)) ;; still not sure what this line does
+;;    (or (string-match re name)
+;;    (not (memq (aref name 0) hides))))
+;;    buf)))
+;;    (buffer-list)))))
+;;    (if (memq cur-buf tabs)
+;;    tabs
+;;    (cons cur-buf tabs))))
+
 
 (defvar wanderlust-insert nil)
 (defvar system-insert nil)
@@ -222,8 +437,8 @@
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'buffer-lawlist-function)
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (define-key global-map [?\s-\~] 'tabbar-backward-group)
-        (define-key global-map [?\s-\`] 'tabbar-forward-group)
+        (define-key global-map [?\s-\~] 'lawlist-tabbar-backward-group)
+        (define-key global-map [?\s-\`] 'lawlist-tabbar-forward-group)
         (tabbar-display-update)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
@@ -363,7 +578,7 @@
         '("*Completions*" "*BBDB*" "*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"
         "*Buffer List*" "*BUFFER LIST*" "*Help*"))
         "system")
-      ((eq major-mode '(dired-mode help-mode apropos-mode Info-mode Man-mode)) "system")
+      ((eq major-mode '(run-latexmk dired-mode help-mode apropos-mode Info-mode Man-mode)) "system")
          ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
       ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
       ((eq major-mode 'org-mode) "org")
@@ -413,16 +628,16 @@
   "Jump to a specific tabbar group."
   (unless (and (featurep 'tabbar) tabbar-mode)
     (error "Error: tabbar-mode not turned on."))
-  (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh 1 of 3
-  (tabbar-scroll tabbar-tabsets-tabset 0)  ;; refresh 2 of 3
-  (tabbar-set-template tabbar-tabsets-tabset nil)  ;; refresh 3 of 3
-  (let* ( (groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset))))
+;;  (set tabbar-tabsets-tabset (tabbar-map-tabsets 'tabbar-selected-tab)) ;; refresh 1 of 3
+;;  (tabbar-scroll tabbar-tabsets-tabset 0)  ;; refresh 2 of 3
+;;  (tabbar-set-template tabbar-tabsets-tabset nil)  ;; refresh 3 of 3
+  (let* ( (groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs (tabbar-get-tabsets-tabset))))) ;; tabbar-tabsets-tabset
     (mapc #'(lambda (group)
               (when (string= group-name (format "%s" (cdr group)))
               (setq tab-group group)
               ) ;; end of when
             ) ;; end of lambda
-      (tabbar-tabs tabbar-tabsets-tabset)
+      (tabbar-tabs (tabbar-get-tabsets-tabset))
     ) ;; end of mapc
     (if (not (equal (format "%s" (car tab-group)) "#<killed buffer>") )
       (progn
@@ -511,34 +726,6 @@
     (get-group "org"))
   (if (equal "WANDERLUST" (frame-parameter nil 'name))
     (get-group "wanderlust")))
-
-(defun frame-exists (frame-name)
-  (not (eq nil (get-frame frame-name))))
-
-(defun get-frame (frame)
-  "Return a frame, if any, named FRAME (a frame or a string).
-If none, return nil.
-If FRAME is a frame, it is returned."
-  (cond ((framep frame) frame)
-        ((stringp frame)
-         (catch 'get-a-frame-found
-           (dolist (fr (frame-list))
-             (when (string= frame (get-frame-name fr))
-               (throw 'get-a-frame-found fr)))
-           nil))
-        (t
-         (error
-          "Function `get-frame-name': Arg neither a string nor a frame: `%s'"
-          frame))))
-
-(defun switch-to-frame (frame-name)
-  (let ((frames (frame-list)))
-    (catch 'break
-      (while frames
-        (let ((frame (car frames)))
-          (if (equal (frame-parameter frame 'name) frame-name)
-              (throw 'break (select-frame-set-input-focus frame))
-            (setq frames (cdr frames))))))))
 
 (defun frame-exists-system ()
 (interactive)
@@ -686,7 +873,7 @@ If FRAME is a frame, it is returned."
       (get-group "main") (frames-and-tab-groups)
       (get-group "org") (frames-and-tab-groups)
       (dolist (frame (frame-list))
-        (when frame (tabbar-forward-group))) ))
+        (when frame (lawlist-tabbar-forward-group))) ))
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (progn
       (dolist (frame (frame-list))
@@ -773,8 +960,92 @@ If FRAME is a frame, it is returned."
   )
 )
 
+(defun lawlist-tabbar-cycle (&optional backward type)
+  "Cycle to the next available tab.
+The scope of the cyclic navigation through tabs is specified by the
+option `tabbar-cycle-scope'.
+If optional argument BACKWARD is non-nil, cycle to the previous tab
+instead.
+Optional argument TYPE is a mouse event type (see the function
+`tabbar-make-mouse-event' for details)."
+  (let* ((tabset (tabbar-current-tabset t))
+         (ttabset (tabbar-get-tabsets-tabset))
+         ;; If navigation through groups is requested, and there is
+         ;; only one group, navigate through visible tabs.
+         (cycle (if (and (eq tabbar-cycle-scope 'groups)
+                         (not (cdr (tabbar-tabs ttabset))))
+                    'tabs
+                  tabbar-cycle-scope))
+         selected tab)
+    (when tabset
+      (setq selected (tabbar-selected-tab tabset))
+      (cond
+       ;; Cycle through visible tabs only.
+       ((eq cycle 'tabs)
+        (setq tab (tabbar-tab-next tabset selected backward))
+        ;; When there is no tab after/before the selected one, cycle
+        ;; to the first/last visible tab.
+        (unless tab
+          (setq tabset (tabbar-tabs tabset)
+                tab (car (if backward (last tabset) tabset))))
+        )
+       ;; Cycle through tab groups only.
+       ((eq cycle 'groups)
+        (setq tab (tabbar-tab-next ttabset selected backward))
+        ;; When there is no group after/before the selected one, cycle
+        ;; to the first/last available group.
+        (unless tab
+          (setq tabset (tabbar-tabs ttabset)
+                tab (car (if backward (last tabset) tabset)))) ;; this is just a setq, not an action.
+(if (equal (format "%s" (cdr tab)) "main")
+  (if (frame-exists "MAIN")
+    (switch-to-frame "MAIN")
+    (frame-exists-main)))
+(if (equal (format "%s" (cdr tab)) "org")
+  (if (frame-exists "ORG")
+    (switch-to-frame "ORG")
+    (frame-exists-org)))
+(if (equal (format "%s" (cdr tab)) "system")
+  (if (frame-exists "SYSTEM")
+    (switch-to-frame "SYSTEM")
+    (frame-exists-system)))
+(if (equal (format "%s" (cdr tab)) "wanderlust")
+  (if (frame-exists "WANDERLUST")
+    (switch-to-frame "WANDERLUST")
+    (frame-exists-wanderlust)))
+        )
+       (t
+        ;; Cycle through visible tabs then tab groups.
+        (setq tab (tabbar-tab-next tabset selected backward))
+        ;; When there is no visible tab after/before the selected one,
+        ;; cycle to the next/previous available group.
+        (unless tab
+          (setq tab (tabbar-tab-next ttabset selected backward))
+          ;; When there is no next/previous group, cycle to the
+          ;; first/last available group.
+          (unless tab
+            (setq tabset (tabbar-tabs ttabset)
+                  tab (car (if backward (last tabset) tabset))))
+          ;; Select the first/last visible tab of the new group.
+          (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
+                tab (car (if backward (last tabset) tabset))))
+        ))
+      (tabbar-click-on-tab tab type))))
+
+(defun lawlist-tabbar-forward-group ()
+  "Go to selected tab in the next available group."
+  (interactive)
+  (let ((tabbar-cycle-scope 'groups))
+    (lawlist-tabbar-cycle)))
+
+(defun lawlist-tabbar-backward-group ()
+  "Go to selected tab in the previous available group."
+  (interactive)
+  (let ((tabbar-cycle-scope 'groups))
+    (lawlist-tabbar-cycle t)))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 
 (provide 'init-tabbar)
