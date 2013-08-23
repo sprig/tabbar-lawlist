@@ -33,6 +33,18 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
+;; (define-key global-map [?\s-w] 'kill-this-buffer)
+(define-key global-map [?\s-o] 'lawlist-find-file)
+
+(define-key global-map [?\s-1] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-unread-folder))))
+(define-key global-map [?\s-2] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-recently-folder))))
+(define-key global-map [?\s-3] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (activate-wanderlust))))
+(define-key global-map [?\s-4] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-inbox-folder))))
+(define-key global-map [?\s-5] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder))))
+
 (global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-buffers))))
 (define-key global-map [?\s-\~] 'tabbar-backward-group)
 (define-key global-map [?\s-\`] 'tabbar-forward-group)
@@ -40,9 +52,6 @@
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
 (global-set-key (kbd "<M-s-left>") 'tabbar-backward)
-(define-key global-map [?\s-w] 'kill-this-buffer)
-;; (define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
-(define-key global-map [?\s-o] 'lawlist-find-file)
 ;; (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
 ;; (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
 ;; (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
@@ -69,13 +78,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST FIND FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun lawlist-find-file (&optional filename)
-  "Open a file, and maybe switch to a specific frame."
+  "Locate or create a specific frame, and then open the file."
   (interactive)
-  (unless filename (setq filename (read-file-name "Select File:  ")))
+  ;; (unless filename (setq filename (read-file-name "Select File:  ")))
+  ;; Emacs versions built --with-ns have the function `ns-read-file-name`.
+  (unless filename (setq filename (ns-read-file-name "Select File:" "~/.0.data/" t nil)))
+  (if filename
     (display-buffer
       (find-file filename)
      '((lawlist-display-buffer-pop-up-frame
-        display-buffer-same-window) )))
+        display-buffer-same-window)))))
 
 (defvar system-buffer-regexp nil
   "*List that contains regexps which match `filename` for frame `SYSTEM`.")
