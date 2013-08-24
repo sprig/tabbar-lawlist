@@ -35,33 +35,33 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-key global-map [?\s-w] (function (lambda () (interactive) (delete-frame-if-empty) )))
-;; (define-key global-map [?\s-w] 'kill-this-buffer)
-(define-key global-map [?\s-o] 'lawlist-find-file)
+(global-set-key [?\s-w] (lambda () (interactive) (delete-frame-if-empty) ))
+;; (global-set-key [?\s-w] 'kill-this-buffer)
+(global-set-key [?\s-o] 'lawlist-find-file)
 
-(define-key global-map [?\s-1] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-unread-folder))))
-(define-key global-map [?\s-2] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-recently-folder))))
-(define-key global-map [?\s-3] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (activate-wanderlust))))
-(define-key global-map [?\s-4] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-inbox-folder))))
-(define-key global-map [?\s-5] (function (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder))))
+(global-set-key [?\s-1] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-unread-folder)))
+(global-set-key [?\s-2] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-recently-folder)))
+(global-set-key [?\s-3] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (activate-wanderlust)))
+(global-set-key [?\s-4] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-inbox-folder)))
+(global-set-key [?\s-5] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder)))
 
-(global-set-key [(f5)] (function (lambda () (interactive) (refresh-frames-buffers))))
-(define-key global-map [?\s-\~] 'tabbar-backward-group)
-(define-key global-map [?\s-\`] 'tabbar-forward-group)
+(global-set-key [(f5)] (lambda () (interactive) (refresh-frames-buffers)))
+(global-set-key [?\s-\~] 'lawlist-tabbar-backward-group)
+(global-set-key [?\s-\`] 'lawlist-tabbar-forward-group)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
 (global-set-key (kbd "<M-s-left>") 'tabbar-backward)
 ;; (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
-;; (define-key buff-menu-mode-map "\e\e\e" (function (lambda () (interactive) (kill-buffer nil) (delete-window) )))
+;; (define-key buff-menu-mode-map "\e\e\e" (lambda () (interactive) (kill-buffer nil) (delete-window) ))
 ;; (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
 
 ;; M-x associate-current-buffer -- control+option+command+a
-(define-key global-map (kbd "<C-M-s-268632065>") 'associate-current-buffer)
+(global-set-key (kbd "<C-M-s-268632065>") 'associate-current-buffer)
 
 ;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
 ;; Do NOT modify `frame-bufs-diss-buffer`, which is used "as-is" with `frame-bufs-menu-execute`.
-(define-key global-map (kbd "<C-M-s-268632078>") (function (lambda ()
+(global-set-key (kbd "<C-M-s-268632078>") (lambda ()
   (interactive)
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (progn
@@ -72,33 +72,70 @@
       ;;  I already have the `buffer-exists` function elsewhere:
       ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
       (if (buffer-exists "nil")
-        (kill-buffer "nil")))))))
+        (kill-buffer "nil"))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST FIND FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun lawlist-find-file (&optional filename)
+(defalias 'ns-find-file 'lawlist-ns-find-file)
+
+(defun lawlist-ns-find-file ()
+  "Do a `find-file' with the `ns-input-file' as argument."
+  (interactive)
+  (let* ((f (file-truename
+	     (expand-file-name (pop ns-input-file)
+			       command-line-default-directory)))
+         (file (find-file-noselect f))
+         (bufwin1 (get-buffer-window file 'visible))
+         (bufwin2 (get-buffer-window "*scratch*" 'visible)))
+    (cond
+     (bufwin1
+      (select-frame (window-frame bufwin1))
+      (raise-frame (window-frame bufwin1))
+      (select-window bufwin1))
+     ((and (eq ns-pop-up-frames 'fresh) bufwin2)
+      (ns-hide-emacs 'activate)
+      (select-frame (window-frame bufwin2))
+      (raise-frame (window-frame bufwin2))
+      (select-window bufwin2)
+      (lawlist-find-file f))
+;;     (ns-pop-up-frames
+;;      (ns-hide-emacs 'activate)
+;;      (let ((pop-up-frames t)) (pop-to-buffer file nil)))
+     (t
+      (ns-hide-emacs 'activate)
+      (lawlist-find-file f)))))
+
+(defvar buffer-filename nil)
+(defun lawlist-find-file (&optional buffer-filename)
   "Locate or create a specific frame, and then open the file."
   (interactive)
-  ;; (unless filename (setq filename (read-file-name "Select File:  ")))
-  ;; Emacs versions built --with-ns have the function `ns-read-file-name`.
-  (unless filename (setq filename (ns-read-file-name "Select File:" "~/.0.data/" t nil)))
-  (if filename
+  ;; (unless buffer-filename (setq buffer-filename (read-file-name "Select File:  ")))
+  (unless buffer-filename (setq buffer-filename (ns-read-file-name "Select File:" "~/.0.data/" t nil)))
+  (if buffer-filename
     (display-buffer
-      (find-file filename)
+      (find-file buffer-filename)
      '((lawlist-display-buffer-pop-up-frame
-        display-buffer-same-window)))))
+        display-buffer-same-window))))
+  (if (and (featurep 'init-frames) frame-bufs-mode)
+    (progn
+    (let ((frame (selected-frame)))
+      (let ((buf (get-file-buffer buffer-filename)))
+        (when (or frame-bufs-include-displayed-buffers
+                  (memq buf (frame-parameter frame 'buffer-list))
+                  (memq buf (frame-parameter frame 'buried-buffer-list)))
+          (frame-bufs-add-buffer buf frame)))))) )
 
 (defvar system-buffer-regexp nil
-  "*List that contains regexps which match `filename` for frame `SYSTEM`.")
-(setq system-buffer-regexp '("*scratch*" "*bbdb*" "\\*Metahelp\\*"))
+  "*List that contains regexps which match `buffer-filename` for frame `SYSTEM`.")
+(setq system-buffer-regexp '("*scratch*" "*bbdb*"))
 
 (defvar main-buffer-regexp nil
-  "*List that contains regexps which match `filename` for frame `MAIN`.")
+  "*List that contains regexps which match `buffer-filename` for frame `MAIN`.")
 (setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet"))
 
 (defvar org-buffer-regexp nil
-  "*List that contains regexps which match `filename` for frame `ORG`.")
+  "*List that contains regexps which match `buffer-filename` for frame `ORG`.")
 (setq org-buffer-regexp '("[*]TODO[*]" "\\.org_archive" "\\.org"))
 
 (defun lawlist-regexps-match-p (regexps string)
@@ -109,7 +146,7 @@
 
 (defun lawlist-display-buffer-pop-up-frame (&optional buffer alist)
 
-  (when (lawlist-regexps-match-p org-buffer-regexp filename)
+  (when (lawlist-regexps-match-p org-buffer-regexp buffer-filename)
     (if (frame-exists "ORG")
         (switch-to-frame "ORG")
       ;; If unnamed frame exists, then take control of it.
@@ -129,7 +166,7 @@
           (make-frame)
           (set-frame-name "ORG"))) ))
 
-  (when (lawlist-regexps-match-p main-buffer-regexp filename)
+  (when (lawlist-regexps-match-p main-buffer-regexp buffer-filename)
     (if (frame-exists "MAIN")
         (switch-to-frame "MAIN")
       ;; If unnamed frame exists, then take control of it.
@@ -149,7 +186,7 @@
           (make-frame)
           (set-frame-name "MAIN"))) ))
 
-  (when (lawlist-regexps-match-p system-buffer-regexp filename)
+  (when (lawlist-regexps-match-p system-buffer-regexp buffer-filename)
     (if (frame-exists "SYSTEM")
         (switch-to-frame "SYSTEM")
       ;; If unnamed frame exists, then take control of it.
@@ -169,9 +206,9 @@
           (make-frame)
           (set-frame-name "SYSTEM"))) ))
 
-  (when (and (not (lawlist-regexps-match-p org-buffer-regexp filename))
-          (not (lawlist-regexps-match-p main-buffer-regexp filename))
-          (not (lawlist-regexps-match-p system-buffer-regexp filename)) )
+  (when (and (not (lawlist-regexps-match-p org-buffer-regexp buffer-filename))
+          (not (lawlist-regexps-match-p main-buffer-regexp buffer-filename))
+          (not (lawlist-regexps-match-p system-buffer-regexp buffer-filename)) )
     (if (frame-exists "MISCELLAENOUS")
         (switch-to-frame "MISCELLAENOUS")
       ;; If unnamed frame exists, then take control of it.
@@ -224,7 +261,8 @@
             (setq frames (cdr frames))))))))
 
 (add-to-list 'display-buffer-alist
-  '("\\(\\*Metahelp\\*\\|\\*Help\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+  '("\\(\\*Metahelp\\*\\|\\*test\\*\\|\\*Help\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+
 
 (defun nofile-display-buffer-pop-up-frame (&optional buffer alist)
     (if (frame-exists "SYSTEM")
@@ -292,6 +330,12 @@
 (add-hook 'emacs-startup-hook
   (lambda ()
     (require 'init-tabbar)
+    (kill-buffer "*scratch*")
+    (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
+    (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
+    (desktop-save-mode 1)
+    (lawlist-desktop-read)
+    (desktop-auto-save-set-timer)
 ;;    (toggle-frame-maximized)
 ;;    (refresh-frames-buffers)  ;; Needed when desktop.el restores files.
 ;;    (frames-and-tab-groups)
@@ -449,22 +493,22 @@
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'buffer-lawlist-function)
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (define-key global-map [?\s-\~] 'lawlist-tabbar-backward-group)
-        (define-key global-map [?\s-\`] 'lawlist-tabbar-forward-group)
+        (global-set-key [?\s-\~] 'lawlist-tabbar-backward-group)
+        (global-set-key [?\s-\`] 'lawlist-tabbar-forward-group)
         (tabbar-display-update)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'buffer-lawlist-function)
         (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (define-key global-map [?\s-\`] nil)
-        (define-key global-map [?\s-\`] (function (lambda () (interactive)
+        (global-set-key [?\s-\`] nil)
+        (global-set-key [?\s-\`] (lambda () (interactive)
           (if (equal "MAIN" (frame-parameter nil 'name))
             (progn
               (switch-to-frame "ORG")
               (get-group "org"))
             (switch-to-frame "MAIN")
-            (get-group "main")))))
+            (get-group "main"))))
         (if (not (or (equal "MAIN" (frame-parameter nil 'name))
                      (equal "ORG" (frame-parameter nil 'name))))
           (switch-to-frame "MAIN"))
@@ -474,8 +518,8 @@
         (setq frame-bufs-mode nil)
         (setq tabbar-buffer-list-function 'tabbar-buffer-list)
         (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
-        (define-key global-map [?\s-\~] 'tabbar-backward-tab)
-        (define-key global-map [?\s-\`] 'tabbar-forward-tab)
+        (global-set-key [?\s-\~] 'tabbar-backward-tab)
+        (global-set-key [?\s-\`] 'tabbar-forward-tab)
         (switch-to-frame "SYSTEM")
         (tabbar-display-update)
         (message "You have chosen: \"everything\""))
@@ -520,8 +564,8 @@
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (unless (not (and (featurep 'init-frames) frame-bufs-mode))
           (error "Error: frame-bufs-mode is already active."))
-        (define-key global-map [?\s-\~] 'cycle-backward-frames-groups)
-        (define-key global-map [?\s-\`] 'cycle-forward-frames-groups)
+        (global-set-key [?\s-\~] 'cycle-backward-frames-groups)
+        (global-set-key [?\s-\`] 'cycle-forward-frames-groups)
         (record-frame-buffer)
         (if (frame-exists "WANDERLUST" )
           (progn
