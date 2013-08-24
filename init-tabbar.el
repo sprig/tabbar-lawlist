@@ -159,11 +159,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "ORG") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "ORG"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "ORG"))) ))
 
   (when (lawlist-regexps-match-p main-buffer-regexp buffer-filename)
@@ -179,11 +181,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "MAIN") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "MAIN"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "MAIN"))) ))
 
   (when (lawlist-regexps-match-p system-buffer-regexp buffer-filename)
@@ -199,11 +203,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "SYSTEM") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "SYSTEM"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "SYSTEM"))) ))
 
   (when (and (not (lawlist-regexps-match-p org-buffer-regexp buffer-filename))
@@ -221,11 +227,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "MISCELLAENEOUS") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "MISCELLAENEOUS"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "MISCELLAENEOUS"))) )) )
 
 ;;  (frames-and-tab-groups)
@@ -277,11 +285,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "SYSTEM") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "SYSTEM"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "SYSTEM"))) ))
 
 (defun wanderlust-display-buffer-pop-up-frame ()
@@ -297,11 +307,13 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
+            (toggle-frame-maximized)
             (set-frame-name "WANDERLUST") )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "WANDERLUST"))
         (progn
           (make-frame)
+          (toggle-frame-maximized)
           (set-frame-name "WANDERLUST"))) ))
 
 
@@ -805,7 +817,7 @@
         (set-frame-name "SYSTEM")
       )
       ;; else
-        (new-frame)
+        (make-frame)
         (toggle-frame-maximized)
         (set-frame-name "SYSTEM") )
 
@@ -835,7 +847,7 @@
         (set-frame-name "MAIN")
       )
       ;; else
-        (new-frame)
+        (make-frame)
         (toggle-frame-maximized)
         (set-frame-name "MAIN") )
     (get-group "main")
@@ -864,7 +876,7 @@
         (set-frame-name "ORG")
       )
       ;; else
-        (new-frame)
+        (make-frame)
         (toggle-frame-maximized)
         (set-frame-name "ORG") )
     (get-group "org")
@@ -893,7 +905,7 @@
         (set-frame-name "WANDERLUST")
       )
       ;; else
-        (new-frame)
+        (make-frame)
         (toggle-frame-maximized)
         (set-frame-name "WANDERLUST") )
     (get-group "wanderlust")
