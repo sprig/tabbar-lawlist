@@ -759,7 +759,8 @@ already present."
                   (memq buf (frame-parameter frame 'buried-buffer-list)))
           (frame-bufs-add-buffer buf frame)) ))
     (tabbar-display-update)
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))) )))
+;;    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+ )))
 
 ;;; ---------------------------------------------------------------------
 ;;; Buffer Menu Initialization
