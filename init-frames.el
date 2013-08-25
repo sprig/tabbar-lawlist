@@ -9,6 +9,7 @@
 
 ;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
 ;; M-x associate-current-buffer -- control+option+command+a
+;; M-x lawlist-frame-bufs-reset -- control+option+command+r
 
 (defconst frame-bufs-hook-assignments
   '(
@@ -30,6 +31,11 @@
   (if (not (equal (buffer-name) "*BUFFER LIST*"))
     (other-window 1))
   (revert-buffer) )
+
+(defun lawlist-frame-bufs-reset ()
+(interactive)
+(modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil)))
+(tabbar-display-update) )
 
 (defun frame-bufs-reset-frame (&optional frame)
   "Reset FRAME's associated-buffer list.
@@ -752,15 +758,13 @@ already present."
 (interactive)
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (progn
-    (let ((frame (selected-frame)))
-      (let ((buf (get-buffer (current-buffer))))
-        (when (or frame-bufs-include-displayed-buffers
-                  (memq buf (frame-parameter frame 'buffer-list))
-                  (memq buf (frame-parameter frame 'buried-buffer-list)))
-          (frame-bufs-add-buffer buf frame)) ))
-    (tabbar-display-update)
+      (let* (
+        (frame (selected-frame))
+        (buf (get-buffer (current-buffer))))
+      (frame-bufs-add-buffer buf frame))
+      (tabbar-display-update))))
 ;;    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
- )))
+
 
 ;;; ---------------------------------------------------------------------
 ;;; Buffer Menu Initialization
@@ -1177,6 +1181,7 @@ Optional ARG means move up."
     (define-key map "\C-k" 'buff-menu-delete)
     (define-key map "x" 'frame-bufs-menu-execute)
     (define-key map "r" 'frame-bufs-reset-frame)
+    (define-key map "R" 'lawlist-frame-bufs-reset-frame)
     (define-key map " " 'next-line)
     (define-key map "n" 'next-line)
     (define-key map "p" 'previous-line)
@@ -1238,6 +1243,10 @@ Optional ARG means move up."
 		 :help ,(purecopy "Mark buffer on this line as unmodified (no changes to save)")))
 
     (define-key menu-map [frame-bufs-seperator-two] menu-bar-separator)
+
+    (define-key menu-map [lawlist-frame-bufs-reset-frame]
+      `(menu-item ,(purecopy "lawlist-frame-bufs-reset-frame") lawlist-frame-bufs-reset-frame
+		 :help ,(purecopy "lawlist-frame-bufs-reset-frame")))
 
     (define-key menu-map [frame-bufs-reset-frame]
       `(menu-item ,(purecopy "frame-bufs-reset-frame") frame-bufs-reset-frame
