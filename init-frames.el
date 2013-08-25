@@ -35,7 +35,9 @@
 (defun lawlist-frame-bufs-reset ()
 (interactive)
 (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil)))
-(tabbar-display-update) )
+(tabbar-display-update)
+(if (eq major-mode 'buff-menu-mode)
+  (revert-buffer)))
 
 (defun frame-bufs-reset-frame (&optional frame)
   "Reset FRAME's associated-buffer list.
@@ -1303,7 +1305,7 @@ Optional ARG means move up."
 ;; Buffer Menu mode is suitable only for specially formatted data.
 (put 'buff-menu-mode 'mode-class 'special)
 
-(define-derived-mode buff-menu-mode special-mode "Every good boy deserves fudge."
+(define-derived-mode buff-menu-mode special-mode "buff-menu-mode"
   "Major mode for editing a list of buffers.
 Each line describes one of the buffers in Emacs.
 Letters do not insert themselves; instead, they are commands.
