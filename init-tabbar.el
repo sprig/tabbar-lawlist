@@ -47,8 +47,8 @@
 (global-set-key [?\s-5] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder)))
 
 (global-set-key [(f5)] (lambda () (interactive) (refresh-frames-buffers)))
-(global-set-key [?\s-\~] 'lawlist-tabbar-backward-group)
-(global-set-key [?\s-\`] 'lawlist-tabbar-forward-group)
+(global-set-key [?\s-\~] 'cycle-backward-frames-groups)
+(global-set-key [?\s-\`] 'cycle-forward-frames-groups)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
