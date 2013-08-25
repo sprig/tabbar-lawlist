@@ -33,6 +33,7 @@
 (setq tabbar-cycle-scope 'tabs)
 (setq ido-enable-flex-matching t)
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (global-set-key [?\s-w] (lambda () (interactive) (delete-frame-if-empty) ))
@@ -339,6 +340,15 @@
 ;;    (frames-and-tab-groups)
   ))
 
+(add-hook 'after-init-hook
+  (lambda ()
+    (setq frame-bufs-mode t)
+    (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; 'tabbar-buffer-list or 'buffer-lawlist-function
+    (setq tabbar-buffer-groups-function (lambda () (list (cond 
+      ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
+      (t "non-associated") ))))
+  ))
+
 (add-hook 'emacs-startup-hook
   (lambda ()
     (require 'init-tabbar)
@@ -454,7 +464,7 @@
 ;; specified in the variable `tabbar-buffer-list-function'.  The
 ;; default function: `tabbar-buffer-list', excludes buffers whose name
 ;; starts with a space, when they are not visiting a file.
-(setq tabbar-buffer-list-function 'buffer-lawlist-function)
+;; (setq tabbar-buffer-list-function 'buffer-lawlist-function)
 (defun buffer-lawlist-function ()
   (let* ((hides (list ?\ ?\*))
   (re (regexp-opt tabbar+displayed-buffers))
