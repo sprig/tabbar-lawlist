@@ -40,9 +40,9 @@
 ;; (global-set-key [?\s-w] 'kill-this-buffer)
 (global-set-key [?\s-o] 'lawlist-find-file)
 
-(global-set-key [?\s-1] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-unread-folder)))
+(global-set-key [?\s-1] 'goto-unread-folder)
 (global-set-key [?\s-2] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-recently-folder)))
-(global-set-key [?\s-3] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (activate-wanderlust)))
+(global-set-key [?\s-3] 'activate-wanderlust)
 (global-set-key [?\s-4] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-inbox-folder)))
 (global-set-key [?\s-5] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder)))
 
@@ -56,6 +56,9 @@
 ;; (define-key Buffer-menu-mode-map "\e\e\e" 'delete-window)
 ;; (define-key buff-menu-mode-map "\e\e\e" (lambda () (interactive) (kill-buffer nil) (delete-window) ))
 ;; (define-key lawlist-calendar-mode-map "\e\e\e" 'delete-window)
+
+;; M-x associate-current-buffer -- control+option+command+r
+(global-set-key (kbd "<C-M-s-268632082>") 'lawlist-frame-bufs-reset)
 
 ;; M-x associate-current-buffer -- control+option+command+a
 (global-set-key (kbd "<C-M-s-268632065>") 'associate-current-buffer)
@@ -118,14 +121,11 @@
       (find-file buffer-filename)
      '((lawlist-display-buffer-pop-up-frame
         display-buffer-same-window))))
-  (if (and (featurep 'init-frames) frame-bufs-mode)
-    (progn
-    (let ((frame (selected-frame)))
-      (let ((buf (get-file-buffer buffer-filename)))
-        (when (or frame-bufs-include-displayed-buffers
-                  (memq buf (frame-parameter frame 'buffer-list))
-                  (memq buf (frame-parameter frame 'buried-buffer-list)))
-          (frame-bufs-add-buffer buf frame)))))) )
+  (if (and buffer-filename (and (featurep 'init-frames) frame-bufs-mode) )
+    (let* (
+      (frame (selected-frame))
+      (buf (get-file-buffer buffer-filename)))
+    (frame-bufs-add-buffer buf frame))) )
 
 (defvar system-buffer-regexp nil
   "*List that contains regexps which match `buffer-filename` for frame `SYSTEM`.")
@@ -237,10 +237,6 @@
           (toggle-frame-maximized)
           (set-frame-name "MISCELLAENEOUS"))) )) )
 
-;;  (frames-and-tab-groups)
-;;  (associate-current-buffer)
-;;  http://lists.gnu.org/archive/html/help-gnu-emacs/2013-04/msg00259.html
-
 (defun frame-exists (frame-name)
   (not (eq nil (get-frame frame-name))))
 
@@ -295,7 +291,7 @@
           (toggle-frame-maximized)
           (set-frame-name "SYSTEM"))) ))
 
-(defun wanderlust-display-buffer-pop-up-frame ()
+(defun wanderlust-display-buffer-pop-up-frame (&optional buffer alist)
     (if (frame-exists "WANDERLUST")
         (switch-to-frame "WANDERLUST")
       ;; If unnamed frame exists, then take control of it.
@@ -308,15 +304,14 @@
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
           (progn
             (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "WANDERLUST") )))
+            (set-frame-name "WANDERLUST")
+            (lawlist-frame-bufs-reset) )))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "WANDERLUST"))
         (progn
           (make-frame)
-          (toggle-frame-maximized)
-          (set-frame-name "WANDERLUST"))) ))
-
+          (set-frame-name "WANDERLUST")
+          (lawlist-frame-bufs-reset)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -365,8 +360,7 @@
 
 (add-hook 'find-file-hook
   (lambda ()
-;;    (frames-and-tab-groups)
-;;    (associate-current-buffer)
+
   ))
 
 (add-hook 'mime-view-mode-hook
