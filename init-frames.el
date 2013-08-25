@@ -1181,7 +1181,7 @@ Optional ARG means move up."
     (define-key map "\C-k" 'buff-menu-delete)
     (define-key map "x" 'frame-bufs-menu-execute)
     (define-key map "r" 'frame-bufs-reset-frame)
-    (define-key map "R" 'lawlist-frame-bufs-reset-frame)
+    (define-key map "R" 'lawlist-frame-bufs-reset)
     (define-key map " " 'next-line)
     (define-key map "n" 'next-line)
     (define-key map "p" 'previous-line)
@@ -1244,9 +1244,9 @@ Optional ARG means move up."
 
     (define-key menu-map [frame-bufs-seperator-two] menu-bar-separator)
 
-    (define-key menu-map [lawlist-frame-bufs-reset-frame]
-      `(menu-item ,(purecopy "lawlist-frame-bufs-reset-frame") lawlist-frame-bufs-reset-frame
-		 :help ,(purecopy "lawlist-frame-bufs-reset-frame")))
+    (define-key menu-map [lawlist-frame-bufs-reset]
+      `(menu-item ,(purecopy "lawlist-frame-bufs-reset") lawlist-frame-bufs-reset
+		 :help ,(purecopy "lawlist-frame-bufs-reset")))
 
     (define-key menu-map [frame-bufs-reset-frame]
       `(menu-item ,(purecopy "frame-bufs-reset-frame") frame-bufs-reset-frame
