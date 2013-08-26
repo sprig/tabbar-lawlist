@@ -149,12 +149,6 @@
   "Regexps matching `buffer-filename` for frame name `ORG`.")
 (setq org-buffer-regexp '("[*]TODO[*]" "\\.org_archive" "\\.org"))
 
-(defun lawlist-regexps-match-p (regexps string)
-  (catch 'matched
-    (dolist (regexp regexps)
-      (if (string-match regexp string)
-        (throw 'matched t)))))
-
 (defvar buffer-filename nil)
 
 (defun lawlist-find-file (&optional buffer-filename)
@@ -283,30 +277,135 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DISPLAY BUFFER NO FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; (add-to-list 'display-buffer-alist
-;;   '("\\(\\*Metahelp\\*\\|\\*Help\\*\\|\\*Backtrace\\*\\|\\*Completions\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+(defvar system-nofile-regexp nil
+  "Regexps matching `buffer-name buffer` for frame name `SYSTEM`.")
+(setq system-nofile-regexp '("\\(\\*Metahelp\\*\\|\\*Help\\*\\)"))
 
-(defun nofile-display-buffer-pop-up-frame (&optional buffer alist)
-  (if (frame-exists "SYSTEM")
-      (switch-to-frame "SYSTEM")
-      ;; If unnamed frame exists, then take control of it.
-      (catch 'break (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (throw 'break (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "SYSTEM"))))))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "SYSTEM"))
-        (progn
-          (make-frame)
-          (toggle-frame-maximized)
-          (set-frame-name "SYSTEM"))) ))
+(defvar main-nofile-regexp nil
+  "Regexps matching `buffer-name buffer` for frame name `MAIN`.")
+(setq main-nofile-regexp '("\\.pdf"))
+
+(defvar org-nofile-regexp nil
+  "Regexps matching `buffer-name buffer` for frame name `ORG`.")
+(setq org-nofile-regexp '("\\*Org Agenda\\*"))
+
+(setq display-buffer-alist `((lawlist-p . (nofile-display-buffer-pop-up-frame))))
+
+;; (add-to-list 'display-buffer-alist '( "\\(\\*Metahelp\\*\\|\\*Help\\*\\)"
+;;   (nofile-display-buffer-pop-up-frame)) )
+
+(defun lawlist-p (buffer action)
+  (let ((buffer (get-buffer buffer)))
+  (or
+    (lawlist-regexps-match-p org-nofile-regexp (buffer-name buffer))
+    (lawlist-regexps-match-p main-nofile-regexp (buffer-name buffer))
+    (lawlist-regexps-match-p system-nofile-regexp (buffer-name buffer)) )))
+
+(defun nofile-display-buffer-pop-up-frame (buffer alist)
+    (when (lawlist-regexps-match-p org-nofile-regexp (buffer-name buffer))
+      (if (frame-exists "ORG")
+          (switch-to-frame "ORG")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "ORG")
+              (toggle-frame-maximized))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "ORG"))
+          (progn
+            (make-frame)
+            (set-frame-name "ORG")
+            (toggle-frame-maximized))) ))
+    (when (lawlist-regexps-match-p main-nofile-regexp (buffer-name buffer))
+      (if (frame-exists "MAIN")
+          (switch-to-frame "MAIN")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "MAIN")
+              (toggle-frame-maximized))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "MAIN"))
+          (progn
+            (make-frame)
+            (set-frame-name "MAIN")
+            (toggle-frame-maximized))) ))
+    (when (lawlist-regexps-match-p system-nofile-regexp (buffer-name buffer))
+      (if (frame-exists "SYSTEM")
+          (switch-to-frame "SYSTEM")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "SYSTEM")
+              (toggle-frame-maximized))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "SYSTEM"))
+          (progn
+            (make-frame)
+            (set-frame-name "SYSTEM")
+            (toggle-frame-maximized))) ))
+    (when (and (not (lawlist-regexps-match-p org-nofile-regexp (buffer-name buffer)))
+            (not (lawlist-regexps-match-p main-nofile-regexp (buffer-name buffer)))
+            (not (lawlist-regexps-match-p system-nofile-regexp (buffer-name buffer))) )
+      (if (frame-exists "MISCELLAENOUS")
+          (switch-to-frame "MISCELLAENOUS")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "MISCELLAENEOUS")
+              (toggle-frame-maximized))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "MISCELLAENEOUS"))
+          (progn
+            (make-frame)
+            (set-frame-name "MISCELLAENEOUS")
+            (toggle-frame-maximized)))))
+    (if (and (featurep 'init-frames) frame-bufs-mode)
+      (frame-bufs-add-buffer buffer (selected-frame))) )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; EXAMPLE:  (defvar system-nofile-regexp nil
+;;             "Regexps matching `buffer-name buffer` for frame name `SYSTEM`.")
+;;           (setq system-nofile-regexp '("\\(\\*Metahelp\\*\\|\\*Help\\*\\)"))
+;;
+;;           (lawlist-regexps-match-p org-nofile-regexp (buffer-name buffer))
+;;
+;;           (lawlist-regexps-match-p org-buffer-regexp buffer-filename)
+
+(defun lawlist-regexps-match-p (regexps string)
+  (catch 'matched
+    (dolist (regexp regexps)
+      (if (string-match regexp string)
+        (throw 'matched t)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
