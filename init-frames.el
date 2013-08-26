@@ -34,10 +34,10 @@
 
 (defun lawlist-frame-bufs-reset ()
 (interactive)
-(modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil)))
-(tabbar-display-update)
-(if (eq major-mode 'buff-menu-mode)
-  (revert-buffer)))
+  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil)))
+  (tabbar-display-update)
+  (if (eq major-mode 'buff-menu-mode)
+    (revert-buffer)))
 
 (defun frame-bufs-reset-frame (&optional frame)
   "Reset FRAME's associated-buffer list.
@@ -54,7 +54,7 @@
 
 (defun frame-bufs-reset-all-frames ()
   "Reset the associated-buffer list of all frames.
-Call `frame-bufs-reset-frame' on all live frames."
+  Call `frame-bufs-reset-frame' on all live frames."
   (interactive)
   (dolist (frame (frame-list))
     (frame-bufs-reset-frame frame)))
