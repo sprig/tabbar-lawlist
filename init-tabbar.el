@@ -16,6 +16,8 @@
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
 ;; https://github.com/alpaker/Frame-Bufs
+;; http://www.emacswiki.org/emacs/frame-cmds.el
+;; http://www.emacswiki.org/emacs/frame-fns.el
 
 ;; REFRESH TABBAR
 ;; (tabbar-current-tabset 't)
