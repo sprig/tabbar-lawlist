@@ -25,26 +25,27 @@
 ;; set current buffer -- switch to tab (function must contain &optional type)
 ;; (setq wl-selected-message-buffer (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
 ;; (tabbar-click-on-tab wl-selected-message-buffer type)
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'tabbar)
+
 (require 'init-frames) ;; Use the modified version in the lawlist repository.
-(tabbar-mode t)
+
 (setq tabbar-cycle-scope 'tabs)
+
 (setq ido-enable-flex-matching t)
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (global-set-key [?\s-w] (lambda () (interactive) (delete-frame-if-empty) ))
 ;; (global-set-key [?\s-w] 'kill-this-buffer)
 (global-set-key [?\s-o] 'lawlist-find-file)
 
 (global-set-key [?\s-1] 'goto-unread-folder)
-(global-set-key [?\s-2] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-recently-folder)))
+(global-set-key [?\s-2] 'goto-sent-recently-folder)
 (global-set-key [?\s-3] 'activate-wanderlust)
-(global-set-key [?\s-4] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-inbox-folder)))
-(global-set-key [?\s-5] (lambda () (interactive) (wanderlust-display-buffer-pop-up-frame) (goto-sent-folder)))
+(global-set-key [?\s-4] 'goto-inbox-folder)
+(global-set-key [?\s-5] 'goto-sent-folder)
 
 (global-set-key [(f5)] (lambda () (interactive) (refresh-frames-buffers)))
 (global-set-key [?\s-\~] 'cycle-backward-frames-groups)
@@ -78,65 +79,72 @@
       (if (buffer-exists "nil")
         (kill-buffer "nil"))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HOOKS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST FIND FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(add-hook 'after-init-hook
+  (lambda ()
+    (tabbar-mode t)
+    (setq frame-bufs-mode t)
+    (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; 'tabbar-buffer-list or 'buffer-lawlist-function
+    (setq tabbar-buffer-groups-function (lambda () (list (cond 
+      ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
+      (t "non-associated") ))))
+  ))
 
-(defalias 'ns-find-file 'lawlist-ns-find-file)
+(add-hook 'emacs-startup-hook
+  (lambda ()
+    (require 'init-tabbar)
+    (kill-buffer "*scratch*")
+    (associate-current-buffer) ;; i.e., *Messages*
+    (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
+    (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
+    (desktop-save-mode 1)
+    (lawlist-desktop-read)
+    (desktop-auto-save-set-timer)
+  ))
 
-(defun lawlist-ns-find-file ()
-  "Do a `find-file' with the `ns-input-file' as argument."
-  (interactive)
-  (let* ((f (file-truename
-	     (expand-file-name (pop ns-input-file)
-			       command-line-default-directory)))
-         (file (find-file-noselect f))
-         (bufwin1 (get-buffer-window file 'visible))
-         (bufwin2 (get-buffer-window "*scratch*" 'visible)))
-    (cond
-     (bufwin1
-      (select-frame (window-frame bufwin1))
-      (raise-frame (window-frame bufwin1))
-      (select-window bufwin1))
-     ((and (eq ns-pop-up-frames 'fresh) bufwin2)
-      (ns-hide-emacs 'activate)
-      (select-frame (window-frame bufwin2))
-      (raise-frame (window-frame bufwin2))
-      (select-window bufwin2)
-      (lawlist-find-file f))
-;;     (ns-pop-up-frames
-;;      (ns-hide-emacs 'activate)
-;;      (let ((pop-up-frames t)) (pop-to-buffer file nil)))
-     (t
-      (ns-hide-emacs 'activate)
-      (lawlist-find-file f)))))
+(add-hook 'find-file-hook
+  (lambda ()
 
-(defvar buffer-filename nil)
-(defun lawlist-find-file (&optional buffer-filename)
-  "Locate or create a specific frame, and then open the file."
-  (interactive)
-  ;; (unless buffer-filename (setq buffer-filename (read-file-name "Select File:  ")))
-  (unless buffer-filename (setq buffer-filename (ns-read-file-name "Select File:" "~/.0.data/" t nil)))
-  (if buffer-filename
-    (display-buffer
-      (find-file buffer-filename)
-     '((lawlist-display-buffer-pop-up-frame
-        display-buffer-same-window))))
-  (if (and buffer-filename (and (featurep 'init-frames) frame-bufs-mode) )
-    (let* (
-      (frame (selected-frame))
-      (buf (get-file-buffer buffer-filename)))
-    (frame-bufs-add-buffer buf frame))) )
+  ))
+
+(add-hook 'mime-view-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'org-agenda-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-draft-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-summary-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+(add-hook 'wl-folder-mode-hook
+  (lambda ()
+;;    (frames-and-tab-groups)
+  ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST FIND FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar system-buffer-regexp nil
-  "*List that contains regexps which match `buffer-filename` for frame `SYSTEM`.")
+  "Regexps matching `buffer-filename` for frame name `SYSTEM`.")
 (setq system-buffer-regexp '("*scratch*" "*bbdb*"))
 
 (defvar main-buffer-regexp nil
-  "*List that contains regexps which match `buffer-filename` for frame `MAIN`.")
+  "Regexps matching `buffer-filename` for frame name `MAIN`.")
 (setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet"))
 
 (defvar org-buffer-regexp nil
-  "*List that contains regexps which match `buffer-filename` for frame `ORG`.")
+  "Regexps matching `buffer-filename` for frame name `ORG`.")
 (setq org-buffer-regexp '("[*]TODO[*]" "\\.org_archive" "\\.org"))
 
 (defun lawlist-regexps-match-p (regexps string)
@@ -145,67 +153,152 @@
       (if (string-match regexp string)
         (throw 'matched t)))))
 
-(defun lawlist-display-buffer-pop-up-frame (&optional buffer alist)
+(defvar buffer-filename nil)
 
-  (when (lawlist-regexps-match-p org-buffer-regexp buffer-filename)
-    (if (frame-exists "ORG")
-        (switch-to-frame "ORG")
+(defun lawlist-find-file (&optional buffer-filename)
+  "Locate or create a specific frame, and then open the file."
+  (interactive)
+  ;; If not Emacs built --with-ns, then `read-file-name´ may be used.
+  ;; (unless buffer-filename (setq buffer-filename (read-file-name "Select File:  ")))
+  (unless buffer-filename (setq buffer-filename (ns-read-file-name "Select File:" "~/.0.data/" t nil)))
+  (if buffer-filename (progn
+    (when (lawlist-regexps-match-p org-buffer-regexp buffer-filename)
+      (if (frame-exists "ORG")
+          (switch-to-frame "ORG")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
+              (set-frame-name "ORG"))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "ORG"))
+          (progn
+            (make-frame)
+            (toggle-frame-maximized)
+            (set-frame-name "ORG"))) ))
+    (when (lawlist-regexps-match-p main-buffer-regexp buffer-filename)
+      (if (frame-exists "MAIN")
+          (switch-to-frame "MAIN")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
+              (set-frame-name "MAIN"))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "MAIN"))
+          (progn
+            (make-frame)
+            (toggle-frame-maximized)
+            (set-frame-name "MAIN"))) ))
+    (when (lawlist-regexps-match-p system-buffer-regexp buffer-filename)
+      (if (frame-exists "SYSTEM")
+          (switch-to-frame "SYSTEM")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
+              (set-frame-name "SYSTEM"))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "SYSTEM"))
+          (progn
+            (make-frame)
+            (toggle-frame-maximized)
+            (set-frame-name "SYSTEM"))) ))
+    (when (and (not (lawlist-regexps-match-p org-buffer-regexp buffer-filename))
+            (not (lawlist-regexps-match-p main-buffer-regexp buffer-filename))
+            (not (lawlist-regexps-match-p system-buffer-regexp buffer-filename)) )
+      (if (frame-exists "MISCELLAENOUS")
+          (switch-to-frame "MISCELLAENOUS")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (and
+              (not (equal "MAIN" (frame-parameter frame 'name)))
+              (not (equal "SYSTEM" (frame-parameter frame 'name)))
+              (not (equal "ORG" (frame-parameter frame 'name)))
+              (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+              (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
+              (set-frame-name "MISCELLAENEOUS"))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "MISCELLAENEOUS"))
+          (progn
+            (make-frame)
+            (toggle-frame-maximized)
+            (set-frame-name "MISCELLAENEOUS"))) ))
+    (find-file buffer-filename)
+    (associate-current-buffer) )))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; LAUNCH FROM OSX FINDER TO EMACS ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defalias 'ns-find-file 'lawlist-ns-find-file)
+
+(defun lawlist-ns-find-file ()
+  "Do a `find-file' with the `ns-input-file' as argument."
+  (interactive)
+  (let* ((f (file-truename
+    (expand-file-name (pop ns-input-file)
+      command-line-default-directory)))
+    (file (find-file-noselect f))
+    (bufwin1 (get-buffer-window file 'visible))
+    (bufwin2 (get-buffer-window "*scratch*" 'visible)))
+  (cond
+    (bufwin1
+      (select-frame (window-frame bufwin1))
+      (raise-frame (window-frame bufwin1))
+      (select-window bufwin1))
+    ((and (eq ns-pop-up-frames 'fresh) bufwin2)
+      (ns-hide-emacs 'activate)
+      (select-frame (window-frame bufwin2))
+      (raise-frame (window-frame bufwin2))
+      (select-window bufwin2)
+      (lawlist-find-file f))
+    (t
+      (ns-hide-emacs 'activate)
+      (lawlist-find-file f)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DISPLAY BUFFER NO FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; (add-to-list 'display-buffer-alist
+;;   '("\\(\\*Metahelp\\*\\|\\*Help\\*\\|\\*Backtrace\\*\\|\\*Completions\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+
+(defun nofile-display-buffer-pop-up-frame (&optional buffer alist)
+  (if (frame-exists "SYSTEM")
+      (switch-to-frame "SYSTEM")
       ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
+      (catch 'break (dolist (frame (frame-list))
         (if (and
             (not (equal "MAIN" (frame-parameter frame 'name)))
             (not (equal "SYSTEM" (frame-parameter frame 'name)))
             (not (equal "ORG" (frame-parameter frame 'name)))
             (not (equal "WANDERLUST" (frame-parameter frame 'name)))
             (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
+          (throw 'break (progn
             (switch-to-frame (frame-parameter frame 'name))
             (toggle-frame-maximized)
-            (set-frame-name "ORG") )))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "ORG"))
-        (progn
-          (make-frame)
-          (toggle-frame-maximized)
-          (set-frame-name "ORG"))) ))
-
-  (when (lawlist-regexps-match-p main-buffer-regexp buffer-filename)
-    (if (frame-exists "MAIN")
-        (switch-to-frame "MAIN")
-      ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "MAIN") )))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "MAIN"))
-        (progn
-          (make-frame)
-          (toggle-frame-maximized)
-          (set-frame-name "MAIN"))) ))
-
-  (when (lawlist-regexps-match-p system-buffer-regexp buffer-filename)
-    (if (frame-exists "SYSTEM")
-        (switch-to-frame "SYSTEM")
-      ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "SYSTEM") )))
+            (set-frame-name "SYSTEM"))))))
       ;; If dolist found no unnamed frame, then create / name it.
       (if (not (frame-exists "SYSTEM"))
         (progn
@@ -213,32 +306,17 @@
           (toggle-frame-maximized)
           (set-frame-name "SYSTEM"))) ))
 
-  (when (and (not (lawlist-regexps-match-p org-buffer-regexp buffer-filename))
-          (not (lawlist-regexps-match-p main-buffer-regexp buffer-filename))
-          (not (lawlist-regexps-match-p system-buffer-regexp buffer-filename)) )
-    (if (frame-exists "MISCELLAENOUS")
-        (switch-to-frame "MISCELLAENOUS")
-      ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "MISCELLAENEOUS") )))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "MISCELLAENEOUS"))
-        (progn
-          (make-frame)
-          (toggle-frame-maximized)
-          (set-frame-name "MISCELLAENEOUS"))) )) )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun frame-exists (frame-name)
   (not (eq nil (get-frame frame-name))))
+
+(defun get-frame-name (&optional frame)
+  "Return the string that names FRAME (a frame).  Default is selected frame."
+  (unless frame (setq frame (selected-frame)))
+  (if (framep frame)
+      (cdr (assq 'name (frame-parameters frame)))
+    (error "Function `get-frame-name': Argument not a frame: `%s'" frame)))
 
 (defun get-frame (frame)
   "Return a frame, if any, named FRAME (a frame or a string).
@@ -265,108 +343,45 @@
               (throw 'break (select-frame-set-input-focus frame))
             (setq frames (cdr frames))))))))
 
-(add-to-list 'display-buffer-alist
-  '("\\(\\*Metahelp\\*\\|\\*test\\*\\|\\*Help\\*\\)" (nofile-display-buffer-pop-up-frame) ) )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WANDERLUST ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defun nofile-display-buffer-pop-up-frame (&optional buffer alist)
-    (if (frame-exists "SYSTEM")
-        (switch-to-frame "SYSTEM")
-      ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (toggle-frame-maximized)
-            (set-frame-name "SYSTEM") )))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "SYSTEM"))
-        (progn
-          (make-frame)
+(defun wanderlust-display-buffer-pop-up-frame ()
+  (if (frame-exists "WANDERLUST")
+      (switch-to-frame "WANDERLUST")
+    ;; If unnamed frame exists, then take control of it.
+    (catch 'break (dolist (frame (frame-list))
+      (if (and
+          (not (equal "MAIN" (frame-parameter frame 'name)))
+          (not (equal "SYSTEM" (frame-parameter frame 'name)))
+          (not (equal "ORG" (frame-parameter frame 'name)))
+          (not (equal "WANDERLUST" (frame-parameter frame 'name)))
+          (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
+        (throw 'break (progn
+          (switch-to-frame (frame-parameter frame 'name))
           (toggle-frame-maximized)
-          (set-frame-name "SYSTEM"))) ))
-
-(defun wanderlust-display-buffer-pop-up-frame (&optional buffer alist)
-    (if (frame-exists "WANDERLUST")
-        (switch-to-frame "WANDERLUST")
-      ;; If unnamed frame exists, then take control of it.
-      (dolist (frame (frame-list))
-        (if (and
-            (not (equal "MAIN" (frame-parameter frame 'name)))
-            (not (equal "SYSTEM" (frame-parameter frame 'name)))
-            (not (equal "ORG" (frame-parameter frame 'name)))
-            (not (equal "WANDERLUST" (frame-parameter frame 'name)))
-            (not (equal "MISCELLANEOUS" (frame-parameter frame 'name))) )
-          (progn
-            (switch-to-frame (frame-parameter frame 'name))
-            (set-frame-name "WANDERLUST")
-            (lawlist-frame-bufs-reset) )))
-      ;; If dolist found no unnamed frame, then create / name it.
-      (if (not (frame-exists "WANDERLUST"))
-        (progn
-          (make-frame)
           (set-frame-name "WANDERLUST")
-          (lawlist-frame-bufs-reset)))))
+          (lawlist-frame-bufs-reset))))))
+    ;; If dolist found no unnamed frame, then create / name it.
+    (if (not (frame-exists "WANDERLUST"))
+      (progn
+        (make-frame)
+        (toggle-frame-maximized)
+        (set-frame-name "WANDERLUST")
+        (lawlist-frame-bufs-reset)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun associate-wl-summary-buffer-name ()
+  (if (and (featurep 'init-frames) frame-bufs-mode)
+    (let* (
+      (frame (selected-frame))
+      (buf (get-buffer wl-summary-buffer-name)))
+    (frame-bufs-add-buffer buf frame))) )
 
-(add-hook 'org-agenda-mode-hook
-  (lambda ()
-;;    (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-draft-mode-hook
-  (lambda ()
-;;    (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-summary-mode-hook
-  (lambda ()
-;;    (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-folder-mode-hook
-  (lambda ()
-;;    (frames-and-tab-groups)
-  ))
-
-(add-hook 'after-init-hook
-  (lambda ()
-    (setq frame-bufs-mode t)
-    (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; 'tabbar-buffer-list or 'buffer-lawlist-function
-    (setq tabbar-buffer-groups-function (lambda () (list (cond 
-      ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
-      (t "non-associated") ))))
-  ))
-
-(add-hook 'emacs-startup-hook
-  (lambda ()
-    (require 'init-tabbar)
-    (kill-buffer "*scratch*")
-    (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
-    (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
-    (desktop-save-mode 1)
-    (lawlist-desktop-read)
-    (desktop-auto-save-set-timer)
-;;    (toggle-frame-maximized)
-;;    (refresh-frames-buffers)  ;; Needed when desktop.el restores files.
-;;    (frames-and-tab-groups)
-  ))
-
-(add-hook 'find-file-hook
-  (lambda ()
-
-  ))
-
-(add-hook 'mime-view-mode-hook
-  (lambda ()
-;;    (frames-and-tab-groups)
-  ))
+(defun associate-wl-folder-buffer-name ()
+(if (and (featurep 'init-frames) frame-bufs-mode)
+    (let* (
+      (frame (selected-frame))
+      (buf (get-buffer wl-folder-buffer-name)) )
+    (frame-bufs-add-buffer buf frame))) )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
