@@ -276,6 +276,12 @@
       (lawlist-find-file f)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DISPLAY BUFFER NO FILE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; EXAMPLES:
+;; (customize-set-variable
+;;   'display-buffer-alist '((".*" . (nofile-display-buffer-pop-up-frame)))) 
+;; (add-to-list 'display-buffer-alist '( "\\(\\*Metahelp\\*\\|\\*Help\\*\\)"
+;;   (nofile-display-buffer-pop-up-frame)) )
 
 (defvar system-nofile-regexp nil
   "Regexps matching `buffer-name buffer` for frame name `SYSTEM`.")
@@ -290,13 +296,6 @@
 (setq org-nofile-regexp '("\\*Org Agenda\\*"))
 
 (setq display-buffer-alist '((lawlist-p . (nofile-display-buffer-pop-up-frame))))
-
-
-;;(customize-set-variable
-;;  'display-buffer-alist '((".*" . (nofile-display-buffer-pop-up-frame)))) 
-
-;; (add-to-list 'display-buffer-alist '( "\\(\\*Metahelp\\*\\|\\*Help\\*\\)"
-;;   (nofile-display-buffer-pop-up-frame)) )
 
 (defun lawlist-p (buffer action)
   (let ((buffer (get-buffer buffer)))
