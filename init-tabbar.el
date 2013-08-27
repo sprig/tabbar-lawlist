@@ -289,7 +289,11 @@
   "Regexps matching `buffer-name buffer` for frame name `ORG`.")
 (setq org-nofile-regexp '("\\*Org Agenda\\*"))
 
-(setq display-buffer-alist `((lawlist-p . (nofile-display-buffer-pop-up-frame))))
+(setq display-buffer-alist '((lawlist-p . (nofile-display-buffer-pop-up-frame))))
+
+
+;;(customize-set-variable
+;;  'display-buffer-alist '((".*" . (nofile-display-buffer-pop-up-frame)))) 
 
 ;; (add-to-list 'display-buffer-alist '( "\\(\\*Metahelp\\*\\|\\*Help\\*\\)"
 ;;   (nofile-display-buffer-pop-up-frame)) )
@@ -1080,7 +1084,8 @@
   (unless (and (featurep 'init-frames) frame-bufs-mode)
     (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame 1)
-  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  (if (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
   ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
   ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
   ;;  I already have the `buffer-exists` function elsewhere:
@@ -1094,7 +1099,8 @@
   (unless (and (featurep 'init-frames) frame-bufs-mode)
     (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame -1)
-  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  (if (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
   ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
   ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
   ;;  I already have the `buffer-exists` function elsewhere:
