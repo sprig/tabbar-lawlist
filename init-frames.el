@@ -756,6 +756,10 @@ already present."
     (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
       (set-window-buffer win (other-buffer buf))))
 
+;; SHORTCUT:
+;; (if (and (featurep 'init-frames) frame-bufs-mode)
+;;   (frame-bufs-add-buffer (get-file-buffer "/Users/HOME/.0.data/*TODO*") (selected-frame))) 
+;; or you can use (get-buffer (current-buffer))
 (defun associate-current-buffer ()
 (interactive)
   (if (and (featurep 'init-frames) frame-bufs-mode)
