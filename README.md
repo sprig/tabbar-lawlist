@@ -9,6 +9,6 @@ The file `init-tabbar.el` has been configured to use four frames (SYSTEM; MAIN; 
 
 I have modified frame-bufs.el (version 1.92) and buff-menu.el (from Emacs version 23.4) by renaming functions and variables so that the two files work in harmony, without conflicting with a current version of buff-menu.el that gets hard-coded into the Emacs executable during the build process.
 
-The function `lawlist-find-file` and the functions for `display-buffer-alist`, along with a modified version of `ns-find-file`, create and/or associate buffers with frames based upon file type and file name.
+The function `lawlist-find-file` and the functions for `display-buffer-alist`, along with a modified version of `ns-find-file`, create / locate frames with specific names based upon file type and file name and associate them if `frame-bufs-mode` is active.
 
 ![screenshot](http://www.lawlist.com/images/frames_tabbar.png)
