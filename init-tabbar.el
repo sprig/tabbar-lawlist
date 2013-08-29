@@ -55,6 +55,7 @@
     (associate-current-buffer) ;; i.e., *Messages*
     (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
     (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
+    (defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
     (setq desktop-restore-frames nil)
     (desktop-save-mode 1)
     (lawlist-desktop-read) ;; modifies desktop-read to use lawlist-find-file
@@ -148,17 +149,20 @@
         (tabbar-display-update)
         (message "You have chosen: \"primary grouping\"") )
       ((?c)
-        (setq frame-bufs-mode nil)
-        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
+;;        (setq frame-bufs-mode t)
+;;        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
+;;        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
         (global-set-key [?\s-\`] nil)
         (global-set-key [?\s-\`] (lambda () (interactive)
           (if (equal "MAIN" (frame-parameter nil 'name))
-            (progn
-              (switch-to-frame "ORG")
-              (get-group "org"))
-            (switch-to-frame "MAIN")
-            (get-group "main"))))
+            (switch-to-frame "ORG")
+            (switch-to-frame "MAIN")) ))
+;;        (if (equal "MAIN" (frame-parameter nil 'name))
+;;            (progn
+;;              (switch-to-frame "ORG")
+;;              (get-group "org"))
+;;            (switch-to-frame "MAIN")
+;;            (get-group "main"))))
         (if (not (or (equal "MAIN" (frame-parameter nil 'name))
                      (equal "ORG" (frame-parameter nil 'name))))
           (switch-to-frame "MAIN"))
@@ -254,7 +258,6 @@
           (progn
             (switch-to-frame "ORG")
             (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list org-insert)))))
-        ;; (frame-bufs-reset-all-frames) ;; Is this needed if frame-bufs-mode previously activated?
         (tabbar-display-update)
         (dolist (frame (frame-list))
           (switch-to-frame (frame-parameter frame 'name) )
@@ -349,12 +352,12 @@
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
-(setq org-buffer-regexp '("[*]TODO[*]" "[*]Org Agenda[*]" "\\.org_archive" "\\.org"))
+(setq org-buffer-regexp '("\\*TODO\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will .")
 (setq special-buffer-regexp
-  '("[*]NO-FILE-special-buffer-regexp[*]" "*FILE-special-buffer-regexp*"))
+  '("\\*NO-FILE-special-buffer-regexp\\*" "\\*FILE-special-buffer-regexp\\*"))
 
 (defvar buffer-filename nil)
 
@@ -362,11 +365,11 @@
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  (unless buffer-filename (setq buffer-filename
-    (read-file-name "Select File: " "~/" nil nil nil nil)))
+  ;;  (unless buffer-filename (setq buffer-filename
+  ;;    (read-file-name "Select File: " "~/" nil nil nil nil)))
   ;; If using a version of Emacs built `--with-ns`, then user may substitute:
-  ;; (unless buffer-filename (setq buffer-filename
-  ;;   (ns-read-file-name "Select File:" "~/" t nil nil)))
+  (unless buffer-filename (setq buffer-filename
+    (ns-read-file-name "Select File:" "~/.0.data/" t nil nil)))
   (if buffer-filename
     (display-buffer (find-file-noselect buffer-filename))))
 
@@ -383,11 +386,13 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
               (set-frame-name "ORG"))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "ORG"))
           (progn
             (make-frame)
+            (toggle-frame-maximized)
             (set-frame-name "ORG"))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
@@ -401,11 +406,13 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
               (set-frame-name "MAIN"))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "MAIN"))
           (progn
             (make-frame)
+            (toggle-frame-maximized)
             (set-frame-name "MAIN"))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
@@ -419,11 +426,13 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
               (set-frame-name "SYSTEM"))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "SYSTEM"))
           (progn
             (make-frame)
+            (toggle-frame-maximized)
             (set-frame-name "SYSTEM"))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
@@ -448,11 +457,13 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (toggle-frame-maximized)
               (set-frame-name "MISCELLANEOUS"))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "MISCELLANEOUS"))
           (progn
             (make-frame)
+            (toggle-frame-maximized)
             (set-frame-name "MISCELLANEOUS"))))
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
@@ -552,14 +563,14 @@
       (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
         (throw 'break (progn
           (switch-to-frame (frame-parameter frame 'name))
-          ;; (toggle-frame-maximized)
+          (toggle-frame-maximized)
           (set-frame-name "WANDERLUST")
           (lawlist-frame-bufs-reset))))))
     ;; If dolist found no unnamed frame, then create / name it.
     (if (not (frame-exists "WANDERLUST"))
       (progn
         (make-frame)
-        ;; (toggle-frame-maximized)
+        (toggle-frame-maximized)
         (set-frame-name "WANDERLUST")
         (lawlist-frame-bufs-reset)))))
 
@@ -994,8 +1005,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DESKTOP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
-
 (defun lawlist-desktop-restore-file-buffer (buffer-filename
                                     _buffer-name
                                     _buffer-misc)
@@ -1014,9 +1023,6 @@
         (cdr (assq 'buffer-file-coding-system
              desktop-buffer-locals))))
          (buf (lawlist-find-file buffer-filename)))
-;;    (condition-case nil
-;;        (switch-to-buffer buf)
-;;      (error (pop-to-buffer buf)))
     (and (not (eq major-mode desktop-buffer-major-mode))
          (functionp desktop-buffer-major-mode)
          (funcall desktop-buffer-major-mode))
@@ -1093,7 +1099,7 @@
     desktop-base-lock-name      ".lock"
     desktop-path                (list desktop-dirname)
     desktop-save                t
-    desktop-files-not-to-save   "[*]scratch[*]\\|[*]bbdb[*]\\|[*]BBDB[*]\\|[*]TODO[*]\\|[*]DONE[*]" ;; "^$"  reload tramp paths
+    desktop-files-not-to-save   "\\*scratch\\*\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
     desktop-load-locked-desktop nil )
 (setq desktop-buffers-not-to-save
         (concat "\\("
