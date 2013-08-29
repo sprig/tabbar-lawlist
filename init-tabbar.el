@@ -273,49 +273,61 @@
 
 (defun example ()
   (interactive)
+  ;; condition # 3 | file-visiting buffer
   (lawlist-find-file "*bar*")
   (set-frame-height (selected-frame) 20)
   (set-frame-width (selected-frame) 80)
   (set-frame-position (selected-frame) 0 0)
   (message "\*bar\* appears in frame name SYSTEM.")
-  (sit-for 2)
+  (sit-for 3)
+  ;; condition # 4(a) | no-file-visiting buffer
+  (display-buffer (get-buffer-create "*NO-FILE-special-buffer-regexp*"))
+  (message "NO-FILE buffer existing frame, without other windows.")
+  (sit-for 3)
+  ;; condition # 2(a) | file-visiting buffer
   (lawlist-find-file "foo.txt")
   (set-frame-height (selected-frame) 20)
   (set-frame-width (selected-frame) 80)
   (set-frame-position (selected-frame) 100 100)
   (message "\"foo.txt\" appears in frame name MAIN.")
-  (sit-for 2)
+  (sit-for 3)
+  ;; condition # 1 | file-visiting buffer
   (lawlist-find-file "doe.org")
   (set-frame-height (selected-frame) 20)
   (set-frame-width (selected-frame) 80)
   (set-frame-position (selected-frame) 200 200)
   (message "\"doe.org\" appears in frame name ORG.")
-  (sit-for 2)
-  (calendar)
-  (message "\*NOT\* buffer-filename.  \*IS\* defined by ignore-buffer-regexp.")
   (sit-for 3)
-  (lawlist-find-file "*buffer-filename-non-regexp*")
+  ;; condition # 4(b) | file-visiting buffer
+  (lawlist-find-file "*FILE-special-buffer-regexp*")
+  (message "FILE buffer existing frame, without other windows.")
+  (sit-for 3)
+  ;; condition # 6 | no-file-visiting buffer default display
+  (calendar)
+  (message "Default for no-file-visiting-buffers.")
+  (sit-for 3)
+  ;; condition # 5 | file-visiting buffer with no pre-defined regexp.
+  (lawlist-find-file "*FILE-undefined-regexp*")
   (set-frame-height (selected-frame) 20)
   (set-frame-width (selected-frame) 80)
   (set-frame-position (selected-frame) 300 300)
-  (message "\*IS\* buffer-filename.  \*NOT\* defined by any special regexp.")
+  (message "\*IS\* buffer-filename.  \*NOT\* defined by any particular regexp.")
   (sit-for 3)
-  (display-buffer (get-buffer-create "*get-buffer-create-example*"))
+  ;; condition # 2(b) | no-file-visiting buffer
+  (display-buffer (get-buffer-create "*NO-FILE-main-buffer-regexp*"))
   (set-frame-height (selected-frame) 20)
   (set-frame-width (selected-frame) 80)
   (set-frame-position (selected-frame) 400 400)
   (message "\*NOT\* buffer-filename.  \*IS\* defined by main-buffer-regexp.")
   (sit-for 3)
-  (display-buffer (get-buffer-create "*get-buffer-create-UNDEFINED*"))
-  (message "\*NOT\* buffer-filename.  \*NOT\* defined by any special regexp.")
-  (sit-for 3)
   (kill-buffer "*bar*")
   (kill-buffer "foo.txt")
   (kill-buffer "doe.org")
-  (kill-buffer "*buffer-filename-non-regexp*")
-  (kill-buffer "*get-buffer-create-example*")
-  (kill-buffer "*get-buffer-create-UNDEFINED*")
+  (kill-buffer "*FILE-undefined-regexp*")
+  (kill-buffer "*NO-FILE-main-buffer-regexp*")
   (kill-buffer "*Calendar*")
+  (kill-buffer "*FILE-special-buffer-regexp*")
+  (kill-buffer "*NO-FILE-special-buffer-regexp*")
   (make-frame)
   (delete-frame (get-frame "SYSTEM"))
   (delete-frame (get-frame "MAIN"))
@@ -333,15 +345,16 @@
 (defvar main-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `MAIN`.")
 (setq main-buffer-regexp
-  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "\\*get-buffer-create-example\\*"))
+  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "\\*NO-FILE-main-buffer-regexp\\*"))
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
 (setq org-buffer-regexp '("[*]TODO[*]" "[*]Org Agenda[*]" "\\.org_archive" "\\.org"))
 
-(defvar ignore-buffer-regexp nil
-  "Regexp of file / buffer names ignored by display-buffer-alist .")
-(setq ignore-buffer-regexp '("[*]Calendar[*]"))
+(defvar special-buffer-regexp nil
+  "Regexp of file / buffer names that will .")
+(setq special-buffer-regexp
+  '("[*]NO-FILE-special-buffer-regexp[*]" "*FILE-special-buffer-regexp*"))
 
 (defvar buffer-filename nil)
 
@@ -349,10 +362,11 @@
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  (unless buffer-filename (setq buffer-filename (read-file-name "Select File: ")))
+  (unless buffer-filename (setq buffer-filename
+    (read-file-name "Select File: " "~/" nil nil nil nil)))
   ;; If using a version of Emacs built `--with-ns`, then user may substitute:
-  ;;     (unless buffer-filename (setq buffer-filename
-  ;;       (ns-read-file-name "Select File:" "~/" t nil)))
+  ;; (unless buffer-filename (setq buffer-filename
+  ;;   (ns-read-file-name "Select File:" "~/" t nil nil)))
   (if buffer-filename
     (display-buffer (find-file-noselect buffer-filename))))
 
@@ -360,6 +374,7 @@
 
 (defun lawlist-display-buffer-pop-up-frame (buffer alist)
   (cond
+    ;; condition # 1 -- either file-visiting or no-file buffers
     ((regexp-match-p org-buffer-regexp (buffer-name buffer))
       (if (frame-exists "ORG")
           (switch-to-frame "ORG")
@@ -377,6 +392,7 @@
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+    ;; condition # 2 -- either file-visiting or no-file buffers
     ((regexp-match-p main-buffer-regexp (buffer-name buffer))
       (if (frame-exists "MAIN")
           (switch-to-frame "MAIN")
@@ -394,6 +410,7 @@
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+    ;; condition # 3 -- either file-visiting or no-file buffers
     ((regexp-match-p system-buffer-regexp (buffer-name buffer))
       (if (frame-exists "SYSTEM")
           (switch-to-frame "SYSTEM")
@@ -411,9 +428,18 @@
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+    ;; condition # 4
+    ;; display buffer in the existing frame, without other windows
+    ((regexp-match-p special-buffer-regexp (buffer-name buffer))
+      (if (and (featurep 'init-frames) frame-bufs-mode)
+        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+    ;; condition # 5
+    ;; file-visiting buffers that do NOT match any pre-defined regexp
     ((and (not (regexp-match-p org-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p main-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p system-buffer-regexp (buffer-name buffer)))
+          (not (regexp-match-p special-buffer-regexp (buffer-name buffer)))
           buffer-filename )
       (if (frame-exists "MISCELLANEOUS")
           (switch-to-frame "MISCELLANEOUS")
@@ -431,9 +457,9 @@
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
-    (t
-      (unless (regexp-match-p ignore-buffer-regexp (buffer-name buffer))
-        (set-window-buffer (split-window-horizontally) (buffer-name buffer)))) ))
+    ;; condition # 6
+    ;; default display for no-file-visiting buffers
+    (t nil) ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -526,14 +552,14 @@
       (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
         (throw 'break (progn
           (switch-to-frame (frame-parameter frame 'name))
-          (toggle-frame-maximized)
+          ;; (toggle-frame-maximized)
           (set-frame-name "WANDERLUST")
           (lawlist-frame-bufs-reset))))))
     ;; If dolist found no unnamed frame, then create / name it.
     (if (not (frame-exists "WANDERLUST"))
       (progn
         (make-frame)
-        (toggle-frame-maximized)
+        ;; (toggle-frame-maximized)
         (set-frame-name "WANDERLUST")
         (lawlist-frame-bufs-reset)))))
 
