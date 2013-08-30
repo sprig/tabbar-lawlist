@@ -57,8 +57,8 @@
     (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
     (defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
     (setq desktop-restore-frames nil)
-    (desktop-save-mode 1)
-    (lawlist-desktop-read) ;; modifies desktop-read to use lawlist-find-file
+    (setq desktop-save-mode t)
+    (lawlist-desktop-read)
     (desktop-auto-save-set-timer)
   ))
 
@@ -483,6 +483,7 @@
 (regexp-match-p example-regexp (buffer-name buffer))
 \nOr, this:\n
 (regexp-match-p example-regexp buffer-filename)"
+  (setq case-fold-search nil) ;; take case into consideration
   (catch 'matched
     (dolist (regexp regexps)
       (if (string-match regexp string)
@@ -637,7 +638,8 @@
         (error
           (if (string= "Attempt to delete the sole visible or iconified frame" 
               (cadr e))
-            (bury-buffer))))))
+            (bury-buffer)))))
+  (tabbar-display-update))
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
