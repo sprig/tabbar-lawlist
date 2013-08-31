@@ -52,8 +52,9 @@
 (add-hook 'emacs-startup-hook
   (lambda ()
     (kill-buffer "*scratch*")
-    (associate-current-buffer) ;; i.e., *Messages*
     (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
+    (if (and (featurep 'init-frames) frame-bufs-mode)
+      (frame-bufs-add-buffer (get-buffer "*Messages*") (selected-frame)))
     (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
     (defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
     (setq desktop-restore-frames nil)
@@ -338,7 +339,7 @@
   (delete-frame (get-frame "MISCELLANEOUS"))
   (message "THE END."))
 
-(defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\)$"
+(defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
 
 (defvar system-buffer-regexp nil
@@ -386,14 +387,16 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "ORG")
               (toggle-frame-maximized)
-              (set-frame-name "ORG"))))))
+              (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "ORG"))
           (progn
             (make-frame)
+            (set-frame-name "ORG")
             (toggle-frame-maximized)
-            (set-frame-name "ORG"))) )
+            (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
@@ -406,14 +409,16 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "MAIN")
               (toggle-frame-maximized)
-              (set-frame-name "MAIN"))))))
+              (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "MAIN"))
           (progn
             (make-frame)
+            (set-frame-name "MAIN")
             (toggle-frame-maximized)
-            (set-frame-name "MAIN"))) )
+            (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
@@ -426,14 +431,16 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "SYSTEM")
               (toggle-frame-maximized)
-              (set-frame-name "SYSTEM"))))))
+              (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "SYSTEM"))
           (progn
             (make-frame)
+            (set-frame-name "SYSTEM")
             (toggle-frame-maximized)
-            (set-frame-name "SYSTEM"))) )
+            (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
@@ -457,14 +464,16 @@
           (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "MISCELLANEOUS")
               (toggle-frame-maximized)
-              (set-frame-name "MISCELLANEOUS"))))))
+              (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (frame-exists "MISCELLANEOUS"))
           (progn
             (make-frame)
+            (set-frame-name "MISCELLANEOUS")
             (toggle-frame-maximized)
-            (set-frame-name "MISCELLANEOUS"))))
+            (lawlist-frame-bufs-reset))))
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
       (set-window-buffer (frame-selected-window) (buffer-name buffer)))
@@ -564,15 +573,15 @@
       (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
         (throw 'break (progn
           (switch-to-frame (frame-parameter frame 'name))
-          (toggle-frame-maximized)
           (set-frame-name "WANDERLUST")
+          (toggle-frame-maximized)
           (lawlist-frame-bufs-reset))))))
     ;; If dolist found no unnamed frame, then create / name it.
     (if (not (frame-exists "WANDERLUST"))
       (progn
         (make-frame)
-        (toggle-frame-maximized)
         (set-frame-name "WANDERLUST")
+        (toggle-frame-maximized)
         (lawlist-frame-bufs-reset)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC BUFFER UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1031,23 +1040,28 @@
     buf)
       nil)))
 
+(defvar desktop-modes-not-to-save nil)
+
 (defun lawlist-desktop-read (&optional dirname)
   (interactive)
-  (unless noninteractive
-    (setq desktop-dirname
-          (file-name-as-directory
-           (expand-file-name
-            (or
-             (and (< 0 (length dirname)) dirname)
-             (let ((dirs desktop-path))
-               (while (and dirs
-                           (not (file-exists-p
-                                 (desktop-full-file-name (car dirs)))))
-                 (setq dirs (cdr dirs)))
-               (and dirs (car dirs)))
-             (and desktop-path (car desktop-path))
-             user-emacs-directory))))
-    (if (file-exists-p (desktop-full-file-name))
+(setq desktop-dirname           "~/.0.data/.0.emacs/"
+    desktop-base-file-name      ".desktop"
+    desktop-base-lock-name      ".lock"
+    desktop-path                (list desktop-dirname)
+    desktop-save                t
+    desktop-files-not-to-save   "\\*scratch\\*\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
+    desktop-load-locked-desktop nil )
+(setq desktop-buffers-not-to-save
+        (concat "\\("
+                "^nn\\.a[0-9]+\\|\\.log\\|(ftp)\\|^tags\\|^TAGS"
+                "\\|\\.emacs.*\\|\\.diary\\|\\.newsrc-dribble"
+                "\\)$"))
+    (add-to-list 'desktop-modes-not-to-save 'dired-mode)
+    (add-to-list 'desktop-modes-not-to-save 'Info-mode)
+    (add-to-list 'desktop-modes-not-to-save 'info-lookup-mode)
+    (add-to-list 'desktop-modes-not-to-save 'fundamental-mode)
+  (if (file-exists-p (desktop-full-file-name))
+;;  (if (file-exists-p "~/.0.data/.0.emacs/.desktop")
   (let ((desktop-first-buffer nil)
         (desktop-buffer-ok-count 0)
         (desktop-buffer-fail-count 0)
@@ -1072,46 +1086,19 @@
       (desktop-claim-lock)
     (file-error (message "Couldn't record use of desktop file")
           (sit-for 1))))
-      (unless (desktop-restoring-frameset-p)
-        (mapc 'bury-buffer
-        (nreverse (cdr (memq desktop-first-buffer (nreverse (buffer-list))))))
-        (switch-to-buffer (car (buffer-list))))
       (run-hooks 'desktop-delay-hook)
       (setq desktop-delay-hook nil)
       (desktop-restore-frameset)
       (run-hooks 'desktop-after-read-hook)
-      (unless (desktop-restoring-frameset-p)
-        (when (buffer-live-p (get-buffer "*Messages*"))
-    (bury-buffer "*Messages*"))
-        (walk-window-tree (lambda (window)
-          (set-window-prev-buffers window nil)
-          (set-window-next-buffers window nil))))
        (setq desktop-saved-frameset nil)
       t))
       (desktop-clear)
       (let ((default-directory desktop-dirname))
         (run-hooks 'desktop-no-desktop-file-hook))
       (message "No desktop file.")
-      nil)))
+      nil))
 
-(defvar desktop-modes-not-to-save nil)
 
-(setq desktop-dirname           "~/.0.data/.0.emacs/"
-    desktop-base-file-name      ".desktop"
-    desktop-base-lock-name      ".lock"
-    desktop-path                (list desktop-dirname)
-    desktop-save                t
-    desktop-files-not-to-save   "\\*scratch\\*\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
-    desktop-load-locked-desktop nil )
-(setq desktop-buffers-not-to-save
-        (concat "\\("
-                "^nn\\.a[0-9]+\\|\\.log\\|(ftp)\\|^tags\\|^TAGS"
-                "\\|\\.emacs.*\\|\\.diary\\|\\.newsrc-dribble"
-                "\\)$"))
-    (add-to-list 'desktop-modes-not-to-save 'dired-mode)
-    (add-to-list 'desktop-modes-not-to-save 'Info-mode)
-    (add-to-list 'desktop-modes-not-to-save 'info-lookup-mode)
-    (add-to-list 'desktop-modes-not-to-save 'fundamental-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
