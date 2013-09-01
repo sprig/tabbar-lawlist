@@ -648,7 +648,17 @@
           (if (string= "Attempt to delete the sole visible or iconified frame" 
               (cadr e))
             (bury-buffer)))))
-  (tabbar-display-update))
+  (if (and
+        (equal (buffer-name) "*scratch*")
+        ;; (eq major-mode 'lisp-interaction-mode)
+        (file-exists-p "/Users/HOME/.0.data/.0.emacs/*scratch*")
+        (not (equal buffer-file-name "/Users/HOME/.0.data/.0.emacs/*scratch*")))
+    (progn
+      (rename-buffer "*to-be-deleted*")
+      (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
+      (kill-buffer "*to-be-deleted*")))
+(tabbar-display-update))
+
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
