@@ -60,34 +60,10 @@
     (lawlist-desktop-read)
   ))
 
-(add-hook 'find-file-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
-
-(add-hook 'mime-view-mode-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
-
-(add-hook 'org-agenda-mode-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-draft-mode-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-summary-mode-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
-
-(add-hook 'wl-folder-mode-hook (lambda ()
-  ;; (frames-and-tab-groups)
-  ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (global-set-key [?\s-w] (lambda () (interactive) (delete-frame-if-empty) ))
-;; (global-set-key [?\s-w] 'kill-this-buffer)
 (global-set-key [?\s-o] 'lawlist-find-file)
 
 (global-set-key [?\s-1] 'goto-unread-folder)
@@ -96,13 +72,13 @@
 (global-set-key [?\s-4] 'goto-inbox-folder)
 (global-set-key [?\s-5] 'goto-sent-folder)
 
-(global-set-key [(f5)] 'tabbar-sort-tab)
 (global-set-key [?\s-\~] 'cycle-backward-frames-groups)
 (global-set-key [?\s-\`] 'cycle-forward-frames-groups)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
 (global-set-key (kbd "<M-s-left>") 'tabbar-backward)
+(global-set-key [(f5)] 'tabbar-sort-tab)
 (global-set-key (kbd "<C-M-s-right>") 'tabbar-move-right)
 (global-set-key (kbd "<C-M-s-left>") 'tabbar-move-left)
 
@@ -705,8 +681,7 @@
               (when (string= group-name (format "%s" (cdr group)))
                   (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
                   (switch-to-buffer (car group)) ))
-          (tabbar-tabs (tabbar-get-tabsets-tabset))))
-  (frames-and-tab-groups) )
+          (tabbar-tabs (tabbar-get-tabsets-tabset)))))
 
 ;; BUFFER MODIFICATION STATE INDICATOR
 (defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
@@ -857,6 +832,18 @@
       (if (buffer-exists "nil")
         (kill-buffer "nil")) ))))
 
+(defun frames-and-tab-groups ()
+(interactive)
+  (tabbar-current-tabset t)
+  (if (equal (format "%s" tabbar-current-tabset) "main")
+      (frame-exists-main))
+  (if (equal (format "%s" tabbar-current-tabset) "system")
+      (frame-exists-system))
+  (if (equal (format "%s" tabbar-current-tabset) "org")
+      (frame-exists-org))
+  (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
+      (frame-exists-wanderlust)) )
+
 (defun lawlist-tabbar-cycle (&optional backward type)
   "Cycle to the next available tab.
   The scope of the cyclic navigation through tabs is specified by the
@@ -940,18 +927,6 @@
   (interactive)
   (let ((tabbar-cycle-scope 'groups))
     (lawlist-tabbar-cycle t)))
-
-(defun frames-and-tab-groups ()
-(interactive)
-  (tabbar-current-tabset t)
-  (if (equal (format "%s" tabbar-current-tabset) "main")
-      (frame-exists-main))
-  (if (equal (format "%s" tabbar-current-tabset) "system")
-      (frame-exists-system))
-  (if (equal (format "%s" tabbar-current-tabset) "org")
-      (frame-exists-org))
-  (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
-      (frame-exists-wanderlust)) )
 
 (defvar tab-group nil)
 (defun get-group (group-name)
