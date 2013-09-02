@@ -77,6 +77,7 @@
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
 (global-set-key (kbd "<M-s-left>") 'tabbar-backward)
+
 (global-set-key [(f5)] 'tabbar-sort-tab)
 (global-set-key (kbd "<C-M-s-right>") 'tabbar-move-right)
 (global-set-key (kbd "<C-M-s-left>") 'tabbar-move-left)
@@ -97,8 +98,6 @@
       (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
       ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
       ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-      ;;  I already have the `buffer-exists` function elsewhere:
-      ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
       (if (buffer-exists "nil")
         (kill-buffer "nil"))))))
 
@@ -744,7 +743,6 @@
 "Move current tab to left"
 (interactive)
 (tabbar-move -1))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;; (setq frame-bufs-mode nil)   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
