@@ -62,7 +62,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(global-set-key [?\s-w] 'delete-frame-if-empty)
+(global-set-key [?\s-w] 'lawlist-kill-buffer)
 (global-set-key [?\s-o] 'lawlist-find-file)
 
 (global-set-key [?\s-1] 'goto-unread-folder)
@@ -609,7 +609,7 @@
   (if (buffer-exists "nil")
     (kill-buffer "nil")) )
 
-(defun delete-frame-if-empty ()
+(defun lawlist-kill-buffer ()
 (interactive)
   (setq current-buffer-name (buffer-name))
   (tabbar-backward)
