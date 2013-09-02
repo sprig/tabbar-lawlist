@@ -7,6 +7,8 @@
 ;; and a modified version of tabbar, all of which are contained within the lawlist
 ;; repository:  https://github.com/lawlist/tabbar-lawlist
 
+;; The manual sorting of tabs requires installation of `dash` from `marmalade`.
+
 ;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
 
 ;; Place these three lines somewhere in the .emacs or init.el
@@ -52,15 +54,10 @@
 (add-hook 'emacs-startup-hook
   (lambda ()
     (kill-buffer "*scratch*")
-    (lawlist-find-file "~/.0.data/.0.emacs/*bbdb*")
+    (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
     (if (and (featurep 'init-frames) frame-bufs-mode)
       (frame-bufs-add-buffer (get-buffer "*Messages*") (selected-frame)))
-    (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
-    (defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
-    (setq desktop-restore-frames nil)
-    (setq desktop-save-mode t)
     (lawlist-desktop-read)
-    (desktop-auto-save-set-timer)
   ))
 
 (add-hook 'find-file-hook (lambda ()
@@ -99,13 +96,15 @@
 (global-set-key [?\s-4] 'goto-inbox-folder)
 (global-set-key [?\s-5] 'goto-sent-folder)
 
-(global-set-key [(f5)] (lambda () (interactive) (refresh-frames-buffers)))
+(global-set-key [(f5)] 'tabbar-sort-tab)
 (global-set-key [?\s-\~] 'cycle-backward-frames-groups)
 (global-set-key [?\s-\`] 'cycle-forward-frames-groups)
 (global-set-key [(control shift tab)] 'tabbar-backward-group)
 (global-set-key [(control tab)] 'tabbar-forward-group) 
 (global-set-key (kbd "<M-s-right>") 'tabbar-forward)
 (global-set-key (kbd "<M-s-left>") 'tabbar-backward)
+(global-set-key (kbd "<C-M-s-right>") 'tabbar-move-right)
+(global-set-key (kbd "<C-M-s-left>") 'tabbar-move-left)
 
 ;; M-x associate-current-buffer -- control+option+command+r
 (global-set-key (kbd "<C-M-s-268632082>") 'lawlist-frame-bufs-reset)
@@ -725,6 +724,55 @@
 (add-hook 'after-save-hook 'ztl-modification-state-change)
 (add-hook 'first-change-hook 'ztl-on-buffer-modification)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SORTING TABS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The manual sorting of tabs requires installation of `dash` from `marmalade`.
+
+(defun tabbar-sort-tab ()
+"Sort current tab group lexicographically"
+(interactive)
+(let* ((ctabset (tabbar-current-tabset 't))
+(ctabs (tabbar-tabs ctabset)))
+(if (and ctabset ctabs)
+(progn
+(set ctabset (sort ctabs (lambda (b1 b2)
+(string-lessp (buffer-name (car b1))
+(buffer-name (car b2))))))
+(put ctabset 'template nil)
+(tabbar-display-update)))))
+
+(defun tabbar-get-current-buffer-index ()
+(let* ((ctabset (tabbar-current-tabset 't))
+(ctabs (tabbar-tabs ctabset))
+(ctab (tabbar-selected-tab ctabset)))
+(length (--take-while (not (eq it ctab)) ctabs))))
+ 
+(defun insert- (list-object index element)
+(append (-take index list-object) (list element) (-drop index list-object)))
+ 
+(defun tabbar-move (direction)
+"Move current tab to (+ index DIRECTION)"
+(interactive)
+(let* ((ctabset (tabbar-current-tabset 't))
+(ctabs (tabbar-tabs ctabset))
+(ctab (tabbar-selected-tab ctabset))
+(index (tabbar-get-current-buffer-index))
+(others (--remove (eq it ctab) ctabs))
+(ins (mod (+ index direction (+ 1 (length others))) (+ 1 (length others)))))
+(set ctabset (insert- others ins ctab))
+(put ctabset 'template nil)
+(tabbar-display-update)))
+ 
+(defun tabbar-move-right ()
+"Move current tab to right"
+(interactive)
+(tabbar-move +1))
+ 
+(defun tabbar-move-left ()
+"Move current tab to left"
+(interactive)
+(tabbar-move -1))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;; (setq frame-bufs-mode nil)   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
@@ -1054,6 +1102,10 @@
 
 (defun lawlist-desktop-read (&optional dirname)
   (interactive)
+(defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
+(setq desktop-save-mode t)
+(desktop-auto-save-set-timer)
+(setq desktop-restore-frames nil)
 (setq desktop-dirname           "~/.0.data/.0.emacs/"
     desktop-base-file-name      ".desktop"
     desktop-base-lock-name      ".lock"
