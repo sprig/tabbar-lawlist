@@ -315,6 +315,10 @@
 (defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
 
+(defvar wanderlust-buffer-regexp nil
+  "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
+(setq wanderlust-buffer-regexp '("Folder" "Summary" "\\*WL:Message\\*"))
+
 (defvar system-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `SYSTEM`.")
 (setq system-buffer-regexp '("*scratch*" "*bbdb*" "*bar*"))
@@ -351,6 +355,28 @@
 
 (defun lawlist-display-buffer-pop-up-frame (buffer alist)
   (cond
+    ;; condition # 0 -- either file-visiting or no-file buffers
+    ((regexp-match-p wanderlust-buffer-regexp (buffer-name buffer))
+      (if (frame-exists "WANDERLUST")
+          (switch-to-frame "WANDERLUST")
+        ;; If unnamed frame exists, then take control of it.
+        (catch 'break (dolist (frame (frame-list))
+          (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
+            (throw 'break (progn
+              (switch-to-frame (frame-parameter frame 'name))
+              (set-frame-name "WANDERLUST")
+              (toggle-frame-maximized)
+              (lawlist-frame-bufs-reset))))))
+        ;; If dolist found no unnamed frame, then create / name it.
+        (if (not (frame-exists "WANDERLUST"))
+          (progn
+            (make-frame)
+            (set-frame-name "WANDERLUST")
+            (toggle-frame-maximized)
+            (lawlist-frame-bufs-reset))) )
+      (if (and (featurep 'init-frames) frame-bufs-mode)
+        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
     ;; condition # 1 -- either file-visiting or no-file buffers
     ((regexp-match-p org-buffer-regexp (buffer-name buffer))
       (if (frame-exists "ORG")
@@ -429,6 +455,7 @@
           (not (regexp-match-p main-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p system-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p special-buffer-regexp (buffer-name buffer)))
+          (not (regexp-match-p wanderlust-buffer-regexp (buffer-name buffer)))
           buffer-filename )
       (if (frame-exists "MISCELLANEOUS")
           (switch-to-frame "MISCELLANEOUS")
@@ -795,10 +822,11 @@
         gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
         "wanderlust")
       ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
-      (t
-        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-          mode-name
-          (symbol-name major-mode))) )))
+;;      (t
+;;        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+;;          mode-name
+;;          (symbol-name major-mode))) )))
+      (t "miscellaneous") )))
 
 (defun record-frame-buffer ()
   (setq current-frame (frame-parameter nil 'name))
@@ -811,13 +839,8 @@
 (defun refresh-frames-buffers ()
 (interactive)
   (if (not (and (featurep 'init-frames) frame-bufs-mode))
-    (progn
-      (get-group "wanderlust") (frames-and-tab-groups)
-      (get-group "system") (frames-and-tab-groups)
-      (get-group "main") (frames-and-tab-groups)
-      (get-group "org") (frames-and-tab-groups)
       (dolist (frame (frame-list))
-        (when frame (lawlist-tabbar-forward-group))) ))
+        (when frame (lawlist-tabbar-forward-group))))
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (progn
       (dolist (frame (frame-list))
@@ -827,18 +850,6 @@
         ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
       (if (buffer-exists "nil")
         (kill-buffer "nil")) ))))
-
-(defun frames-and-tab-groups ()
-(interactive)
-  (tabbar-current-tabset t)
-  (if (equal (format "%s" tabbar-current-tabset) "main")
-      (frame-exists-main))
-  (if (equal (format "%s" tabbar-current-tabset) "system")
-      (frame-exists-system))
-  (if (equal (format "%s" tabbar-current-tabset) "org")
-      (frame-exists-org))
-  (if (equal (format "%s" tabbar-current-tabset) "wanderlust")
-      (frame-exists-wanderlust)) )
 
 (defun lawlist-tabbar-cycle (&optional backward type)
   "Cycle to the next available tab.
@@ -877,22 +888,10 @@
         (unless tab
           (setq tabset (tabbar-tabs ttabset)
                 tab (car (if backward (last tabset) tabset))))
-        (if (equal (format "%s" (cdr tab)) "main")
-          (if (frame-exists "MAIN")
-            (switch-to-frame "MAIN")
-            (frame-exists-main)))
-        (if (equal (format "%s" (cdr tab)) "org")
-          (if (frame-exists "ORG")
-            (switch-to-frame "ORG")
-            (frame-exists-org)))
-        (if (equal (format "%s" (cdr tab)) "system")
-          (if (frame-exists "SYSTEM")
-            (switch-to-frame "SYSTEM")
-            (frame-exists-system)))
-        (if (equal (format "%s" (cdr tab)) "wanderlust")
-          (if (frame-exists "WANDERLUST")
-            (switch-to-frame "WANDERLUST")
-            (frame-exists-wanderlust)))
+        ;; (cdr tab) = name of tab group (e.g., main, org, system, wanderlust)
+        ;; (car tab) = the actual buffer, not its common name
+        ;; (if (equal (format "%s" (cdr tab)) "main")
+        ;;    (... do something ))
        )
        (t
         ;; Cycle through visible tabs then tab groups.
@@ -910,7 +909,8 @@
           (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
                 tab (car (if backward (last tabset) tabset))))
         ))
-      (tabbar-click-on-tab tab type))))
+        ;; (tabbar-click-on-tab tab type))))
+       (display-buffer (get-buffer (car tab))))))
 
 (defun lawlist-tabbar-forward-group ()
   "Go to selected tab in the next available group."
@@ -966,82 +966,6 @@
     ) ;; end of if
   ) ;; end of let
  ) ;; end of defun
-
-(defun frame-exists-system ()
-(interactive)
-  (if (frame-exists "SYSTEM")
-    ;; then
-    (progn
-      (switch-to-frame "SYSTEM")
-      (get-group "system") )
-    ;; else -- take control of an existing frame not yet specially named.
-    (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
-      ;; then
-      (progn
-        (toggle-frame-maximized)
-        (set-frame-name "SYSTEM") )
-      ;; else
-        (make-frame)
-        (toggle-frame-maximized)
-        (set-frame-name "SYSTEM") )
-    (get-group "system") ))
-
-(defun frame-exists-main ()
-(interactive)
-  (if (frame-exists "MAIN")
-    ;; then
-    (progn
-      (switch-to-frame "MAIN")
-      (get-group "main") )
-    ;; else -- take control of an existing frame not yet specially named.
-    (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
-      ;; then
-      (progn
-        (toggle-frame-maximized)
-        (set-frame-name "MAIN") )
-      ;; else
-        (make-frame)
-        (toggle-frame-maximized)
-        (set-frame-name "MAIN") )
-    (get-group "main") ))
-
-(defun frame-exists-org ()
-(interactive)
-  (if (frame-exists "ORG")
-    ;; then
-    (progn
-      (switch-to-frame "ORG")
-      (get-group "org") )
-    ;; else -- take control of an existing frame not yet specially named.
-    (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
-      ;; then
-      (progn
-        (toggle-frame-maximized)
-        (set-frame-name "ORG") )
-      ;; else
-        (make-frame)
-        (toggle-frame-maximized)
-        (set-frame-name "ORG") )
-    (get-group "org") ))
-
-(defun frame-exists-wanderlust ()
-(interactive)
-  (if (frame-exists "WANDERLUST")
-    ;; then
-    (progn
-      (switch-to-frame "WANDERLUST")
-      (get-group "wanderlust") )
-    ;; else -- take control of an existing frame not yet specially named.
-    (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
-      ;; then
-      (progn
-        (toggle-frame-maximized)
-        (set-frame-name "WANDERLUST") )
-      ;; else
-        (make-frame)
-        (toggle-frame-maximized)
-        (set-frame-name "WANDERLUST") )
-    (get-group "wanderlust") ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DESKTOP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1130,8 +1054,6 @@
         (run-hooks 'desktop-no-desktop-file-hook))
       (message "No desktop file.")
       nil))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
