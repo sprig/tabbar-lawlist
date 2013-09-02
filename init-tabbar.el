@@ -60,10 +60,9 @@
     (lawlist-desktop-read)
   ))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(global-set-key [?\s-w] (lambda () (interactive) (delete-frame-if-empty) ))
+(global-set-key [?\s-w] 'delete-frame-if-empty)
 (global-set-key [?\s-o] 'lawlist-find-file)
 
 (global-set-key [?\s-1] 'goto-unread-folder)
@@ -82,13 +81,13 @@
 (global-set-key (kbd "<C-M-s-right>") 'tabbar-move-right)
 (global-set-key (kbd "<C-M-s-left>") 'tabbar-move-left)
 
-;; M-x associate-current-buffer -- control+option+command+r
+;; control+option+command+r
 (global-set-key (kbd "<C-M-s-268632082>") 'lawlist-frame-bufs-reset)
 
-;; M-x associate-current-buffer -- control+option+command+a
+;; control+option+command+a
 (global-set-key (kbd "<C-M-s-268632065>") 'associate-current-buffer)
 
-;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
+;; control+option+command+n
 ;; Do NOT modify `frame-bufs-diss-buffer`, which is used "as-is" with `frame-bufs-menu-execute`.
 (global-set-key (kbd "<C-M-s-268632078>") (lambda ()
   (interactive)
@@ -633,7 +632,6 @@
       (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
       (kill-buffer "*to-be-deleted*")))
 (tabbar-display-update))
-
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
   (interactive)
