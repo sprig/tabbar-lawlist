@@ -110,7 +110,7 @@
 (defun tabbar-choice ()
 (interactive)
   "Different choices relating to tab groups, frame-bufs-mode, and the like."
-  (message "[F]rame-Bufs | [d]efault | [c]ourt | [a]ll | ido- [t/T]ab [f]rame [g]roup | [v/h] Tile | [G]roups" )
+  (message "[f]rame-bufs | [d]efault | [c]ourt | [a]ll | [v/h] Tile" )
   (let* (
     (a (read-char-exclusive))
     (choice (case a
@@ -151,23 +151,6 @@
         (switch-to-frame "SYSTEM")
         (tabbar-display-update)
         (message "You have chosen: \"everything\""))
-      ((?t)
-        (tabbar-display-update)
-        (sit-for 0)
-        (ido-tab))
-      ((?T)
-        ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
-        (tabbar-display-update)
-        (sit-for 0)
-        (ido-frame-bufs))
-      ((?g)
-        (tabbar-display-update)
-        (sit-for 0)
-        (ido-group))
-      ((?f)
-        (tabbar-display-update)
-        (sit-for 0)
-        (ido-frame))
       ((?v)
         ;; requires installation of both frame-cmds and frame-fns
         ;; http://www.emacswiki.org/emacs/frame-cmds.el
@@ -188,7 +171,7 @@
         (restore-frame-buffer)
         (tabbar-display-update)
         (sit-for 0))
-      ((?F)
+      ((?f)
         ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
         (unless (not (and (featurep 'init-frames) frame-bufs-mode))
           (error "Error: frame-bufs-mode is already active."))
@@ -241,9 +224,6 @@
           (if (buffer-exists "nil")
             (kill-buffer "nil")) )
         (restore-frame-buffer) )
-      ((?G)
-        (tabbar-buffer-show-groups-toggle-switch)
-        (tabbar-display-update))
       (t (message "No changes have been made.")) )))))
 
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -330,7 +310,7 @@
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
-(setq org-buffer-regexp '("\\*TODO\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
+(setq org-buffer-regexp '("\\*TODO\\*" "\\*DONE\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will .")
@@ -775,7 +755,7 @@
 
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
   "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"
-  "*BUFFER LIST*" "*Help*" "*Compile-Log*")
+  "*BUFFER LIST*" "*Help*" "*Compile-Log*" "*DONE*")
   "*Reagexps matches buffer names always included tabs.")
 
 ;; (setq tabbar-buffer-list-function 'buffer-lawlist-function)
@@ -814,7 +794,7 @@
          ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
       ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
       ((eq major-mode 'org-mode) "org")
-      ((member (buffer-name) '("*TODO*" "*Org Agenda*")) "org")
+      ((member (buffer-name) '("*TODO*" "*DONE*" "*Org Agenda*")) "org")
       ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
       ((memq major-mode
         '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
@@ -822,10 +802,10 @@
         gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
         "wanderlust")
       ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
-;;      (t
-;;        (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-;;          mode-name
-;;          (symbol-name major-mode))) )))
+      ;;  (t
+      ;;    (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
+      ;;       mode-name
+      ;;       (symbol-name major-mode))) )))
       (t "miscellaneous") )))
 
 (defun record-frame-buffer ()
