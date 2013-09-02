@@ -33,9 +33,11 @@
   (revert-buffer) )
 
 (defun lawlist-frame-bufs-reset ()
+  "Wipe the entire slate clean for the selected frame."
 (interactive)
   (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil)))
-  (tabbar-display-update)
+  (if (and (featurep 'tabbar) tabbar-mode)
+    (tabbar-display-update))
   (if (eq major-mode 'buff-menu-mode)
     (revert-buffer)))
 
@@ -579,7 +581,9 @@ Do not set this variable directly.  Use the command
     (signal 'wrong-type-argument (list 'bufferp buf)))
   (let ((associated-bufs (frame-parameter frame 'frame-bufs-buffer-list)))
     (unless (memq buf associated-bufs)
-      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs)))))
+      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs))))
+  (if (and (featurep 'tabbar) tabbar-mode)
+    (tabbar-display-update)))
 
 (defun frame-bufs-add-buffers (bufs frame)
   "Add each member of BUFS to FRAME's associated-buffer list if it not
@@ -760,16 +764,12 @@ already present."
 ;; (if (and (featurep 'init-frames) frame-bufs-mode)
 ;;   (frame-bufs-add-buffer (get-file-buffer "/Users/HOME/.0.data/*TODO*") (selected-frame))) 
 ;; or you can use (get-buffer (current-buffer))
+;; (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
 (defun associate-current-buffer ()
 (interactive)
   (if (and (featurep 'init-frames) frame-bufs-mode)
-    (progn
-      (let* (
-        (frame (selected-frame))
-        (buf (get-buffer (current-buffer))))
-      (frame-bufs-add-buffer buf frame))
-      (tabbar-display-update))))
-;;    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+    (frame-bufs-add-buffer (get-buffer (current-buffer)) (selected-frame))))
+
 
 
 ;;; ---------------------------------------------------------------------
