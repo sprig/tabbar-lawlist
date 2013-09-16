@@ -57,6 +57,7 @@
     (lawlist-find-file "~/.0.data/.0.emacs/*scratch*")
     (if (and (featurep 'init-frames) frame-bufs-mode)
       (frame-bufs-add-buffer (get-buffer "*Messages*") (selected-frame)))
+    (yas-global-mode 1)
     (lawlist-desktop-read)
   ))
 
@@ -313,7 +314,7 @@
 (setq org-buffer-regexp '("\\*TODO\\*" "\\*DONE\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
 
 (defvar special-buffer-regexp nil
-  "Regexp of file / buffer names that will .")
+  "Regexp of file / buffer names that will display in the current frame without other windows.")
 (setq special-buffer-regexp
   '("\\*NO-FILE-special-buffer-regexp\\*" "\\*FILE-special-buffer-regexp\\*"))
 
@@ -356,7 +357,8 @@
             (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 1 -- either file-visiting or no-file buffers
     ((regexp-match-p org-buffer-regexp (buffer-name buffer))
       (if (frame-exists "ORG")
@@ -378,7 +380,8 @@
             (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 2 -- either file-visiting or no-file buffers
     ((regexp-match-p main-buffer-regexp (buffer-name buffer))
       (if (frame-exists "MAIN")
@@ -400,7 +403,8 @@
             (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 3 -- either file-visiting or no-file buffers
     ((regexp-match-p system-buffer-regexp (buffer-name buffer))
       (if (frame-exists "SYSTEM")
@@ -422,13 +426,15 @@
             (lawlist-frame-bufs-reset))) )
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 4
     ;; display buffer in the existing frame, without other windows
     ((regexp-match-p special-buffer-regexp (buffer-name buffer))
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 5
     ;; file-visiting buffers that do NOT match any pre-defined regexp
     ((and (not (regexp-match-p org-buffer-regexp (buffer-name buffer)))
@@ -456,7 +462,8 @@
             (lawlist-frame-bufs-reset))))
       (if (and (featurep 'init-frames) frame-bufs-mode)
         (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
-      (set-window-buffer (frame-selected-window) (buffer-name buffer)))
+      (set-window-buffer (selected-window) (buffer-name buffer))
+      (set-buffer (buffer-name buffer)) )
     ;; condition # 6
     ;; default display for no-file-visiting buffers
     (t nil) ))
@@ -472,7 +479,7 @@
 (regexp-match-p example-regexp (buffer-name buffer))
 \nOr, this:\n
 (regexp-match-p example-regexp buffer-filename)"
-  (setq case-fold-search nil) ;; take case into consideration
+  ;; (setq case-fold-search nil) ;; take case into consideration
   (catch 'matched
     (dolist (regexp regexps)
       (if (string-match regexp string)
@@ -1044,9 +1051,9 @@
   (setq frame-bufs-cdr (cdr (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
   (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
-  (setq tab-focus (tabbar-selected-tab tabbar-current-tabset))
-  (setq tabs-group-focus (tabbar-tabs tabbar-current-tabset))
-  (setq group-focus tabbar-current-tabset)
+  (setq tab-focus (tabbar-selected-tab (tabbar-current-tabset t)))
+  (setq tabs-group-focus (tabbar-tabs (tabbar-current-tabset t)))
+  (setq group-focus (tabbar-current-tabset t))
   (setq frame-focus (frame-parameter nil 'name))
   (setq all-frames (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
   (setq buffer-focus (buffer-name))
@@ -1056,6 +1063,7 @@
   (setq all-tabs-per-group-focus (tabbar-tabs (tabbar-get-tabsets-tabset)))
   (setq cdr-all-tabs-per-group-focus (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
   (setq car-all-tabs-per-group-focus (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
+  (setq filename buffer-file-name)
   (if (buffer-exists "*Messages*")
       (display-buffer "*Messages*")
     (display-buffer (get-buffer-create "*Messages*")))
@@ -1081,6 +1089,7 @@
   (message "All Tabs (Per Group) -- Focus:  %s \n" all-tabs-per-group-focus)
   (message "\"cdr\" of \"All Tabs (Per Group) -- Focus\":  %s \n" cdr-all-tabs-per-group-focus)
   (message "\"car\" of \"All Tabs (Per Group) -- Focus\":  %s \n" car-all-tabs-per-group-focus)
+  (message "%s" filename)
   (message "-------------------------------------------------------- \n")
   (message "\"M-x delete-window\" to close this window.")
   (goto-char (point-max))
