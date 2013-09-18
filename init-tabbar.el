@@ -628,6 +628,10 @@
   (tabbar-backward)
   (setq previous-buffer-name (buffer-name))
   (kill-buffer current-buffer-name)
+  (if (get-buffer-window "*Calendar*" (selected-frame))
+    (progn
+      (kill-buffer "*Calendar*")
+      (delete-other-windows) ))
   (if (equal current-buffer-name previous-buffer-name)
     (condition-case e
       (delete-frame)
