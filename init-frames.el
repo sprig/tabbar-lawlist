@@ -770,8 +770,6 @@ already present."
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (frame-bufs-add-buffer (get-buffer (current-buffer)) (selected-frame))))
 
-
-
 ;;; ---------------------------------------------------------------------
 ;;; Buffer Menu Initialization
 ;;; ---------------------------------------------------------------------
@@ -1362,7 +1360,6 @@ Letters do not insert themselves; instead, they are commands.
 	      ((> (prefix-numeric-value arg) 0) t)))
   (revert-buffer))
 
-
 (defun buff-menu-buffer (error-if-non-existent-p)
   "Return buffer described by this line of buffer menu."
   (let* ((where (save-excursion
@@ -1380,7 +1377,6 @@ Letters do not insert themselves; instead, they are commands.
 	  (if error-if-non-existent-p
 	      (error "No buffer on this line")
 	    nil)))))
-
 (defun buff-menu (&optional arg)
   "Make a menu of buffers so you can save, delete or select them.
   With argument, show only buffers that are visiting files.
@@ -1551,7 +1547,6 @@ Letters do not insert themselves; instead, they are commands.
   (interactive)
   (multi-isearch-buffers-regexp (buff-menu-marked-buffers)))
 
-
 (defun buff-menu-visit-tags-table ()
   "Visit the tags table in the buffer on this line.  See `visit-tags-table'."
   (interactive)
@@ -1648,7 +1643,6 @@ Letters do not insert themselves; instead, they are commands.
   "View this line's buffer in View mode in another window."
   (interactive)
   (view-buffer-other-window (buff-menu-buffer t)))
-
 
 ;;;###autoload
 (define-key ctl-x-map "\C-b" 'frame-bufs)
