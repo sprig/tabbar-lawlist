@@ -997,9 +997,7 @@ Optional ARG means move up."
   (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
   ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
   ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-  ;;  I already have the `buffer-exists` function elsewhere:
-  ;;  (defun buffer-exists (bufname) (not (eq nil (get-buffer bufname))))
-  (if (buffer-exists "nil")
+  (if (get-buffer "nil")
     (kill-buffer "nil"))
   (other-window 1) )
 
