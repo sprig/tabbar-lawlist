@@ -770,6 +770,13 @@ already present."
   (if (and (featurep 'init-frames) frame-bufs-mode)
     (frame-bufs-add-buffer (get-buffer (current-buffer)) (selected-frame))))
 
+(defun disassociate-current-buffer ()
+(interactive)
+  (frame-bufs-dismiss-buffer)
+  (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
+  (if (get-buffer "nil")
+  (kill-buffer "nil")))
+
 ;;; ---------------------------------------------------------------------
 ;;; Buffer Menu Initialization
 ;;; ---------------------------------------------------------------------
