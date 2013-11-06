@@ -52,53 +52,6 @@
     (t "non-associated") ))))
   ))
 
-(add-hook 'emacs-startup-hook
-  (lambda ()
-    (kill-buffer "*scratch*")
-    (lawlist-find-file "/Users/HOME/.0.data/.0.emacs/*scratch*")
-    (if (and (featurep 'init-frames) frame-bufs-mode)
-      (frame-bufs-add-buffer (get-buffer "*Messages*") (selected-frame)))
-    (setq frame-height-maximized (frame-height (selected-frame)))
-    (setq frame-width-maximized (frame-width (selected-frame)))
-    (yas-global-mode 1)
-    (lawlist-desktop-read)
-  ))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; KEYBOARD SHORTCUTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(global-set-key [?\s-w] 'lawlist-kill-buffer)
-(global-set-key [?\s-o] 'lawlist-find-file)
-
-(global-set-key [?\s-\~] 'cycle-backward-frames-groups)
-(global-set-key [?\s-\`] 'cycle-forward-frames-groups)
-(global-set-key [(control shift tab)] 'tabbar-backward-group)
-(global-set-key [(control tab)] 'tabbar-forward-group) 
-(global-set-key (kbd "<M-s-right>") 'tabbar-forward)
-(global-set-key (kbd "<M-s-left>") 'tabbar-backward)
-
-(global-set-key [(f5)] 'tabbar-sort-tab)
-(global-set-key (kbd "<C-M-s-right>") 'tabbar-move-right)
-(global-set-key (kbd "<C-M-s-left>") 'tabbar-move-left)
-
-;; control+option+command+r
-(global-set-key (kbd "<C-M-s-268632082>") 'lawlist-frame-bufs-reset)
-
-;; control+option+command+a
-(global-set-key (kbd "<C-M-s-268632065>") 'associate-current-buffer)
-
-;; control+option+command+n
-;; Do NOT modify `frame-bufs-diss-buffer`, which is used "as-is" with `frame-bufs-menu-execute`.
-(global-set-key (kbd "<C-M-s-268632078>") (lambda ()
-  (interactive)
-  (if (and (featurep 'init-frames) frame-bufs-mode)
-    (progn
-      (frame-bufs-dismiss-buffer)
-      (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
-      ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
-      ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-      (if (get-buffer "nil")
-        (kill-buffer "nil"))))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST CHOICES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar wanderlust-insert nil)
@@ -290,16 +243,26 @@
   (delete-frame (get-frame "MISCELLANEOUS"))
   (message "THE END."))
 
+(defun lawlist-make-frame ()
+  (make-frame)
+  (cond
+    ((eq system-type 'darwin)
+      (toggle-frame-maximized))
+    ((eq system-type 'windows-nt)
+      (switch-to-frame "emacs@PARALLELS")
+      (w32-send-sys-command 61488)))
+  (lawlist-frame-bufs-reset))
+
 (defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
 
 (defvar wanderlust-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
-(setq wanderlust-buffer-regexp '("Folder" "Summary" "\\*WL:Message\\*"))
+(setq wanderlust-buffer-regexp '("Folder" "Summary" "INBOX" "SENT" "JUNK" "TRASH" "DRAFTS" "\\*WL:Message\\*" "\\*draft\\*"))
 
 (defvar system-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `SYSTEM`.")
-(setq system-buffer-regexp '("*scratch*" "*bbdb*" "*bar*"))
+(setq system-buffer-regexp '("*scratch*" "*bbdb*" "*bar*" ".scratch"))
 
 (defvar main-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `MAIN`.")
@@ -308,7 +271,7 @@
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
-(setq org-buffer-regexp '("\\*TODO\\*" "\\*DONE\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
+(setq org-buffer-regexp '("\\*TODO\\*" "\\.todo" "\\.done" "\\*DONE\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will display in the current frame without other windows.")
@@ -321,15 +284,17 @@
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  ;;  (unless buffer-filename (setq buffer-filename
-  ;;    (read-file-name "Select File: " "/Users/HOME/" nil nil nil nil)))
-  ;; If using a version of Emacs built `--with-ns`, then user may substitute:
   (unless buffer-filename (setq buffer-filename
-    (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil)))
+    (cond
+      ((eq system-type 'darwin)
+        (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
+      ((eq system-type 'windows-nt)
+        (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))
   (if buffer-filename
     (display-buffer (find-file-noselect buffer-filename))))
 
-;; (display-buffer (get-buffer-create . . . '(lawlist-display-buffer-pop-up-frame)))
+;; The following is a `pinpoint` alternative to using the `display-buffer-alist`.
+;; (display-buffer (get-buffer-create "foo.txt") '(lawlist-display-buffer-pop-up-frame))
 (setq display-buffer-alist '((".*" . (lawlist-display-buffer-pop-up-frame))))
 
 (defun lawlist-display-buffer-pop-up-frame (buffer alist)
@@ -344,17 +309,13 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "WANDERLUST")
-              (toggle-frame-maximized)
               (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "WANDERLUST"))
           (progn
-            (make-frame)
-            (set-frame-name "WANDERLUST")
-            (toggle-frame-maximized)
-            (lawlist-frame-bufs-reset))) )
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+            (lawlist-make-frame)
+            (set-frame-name "WANDERLUST"))) )
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 1 -- either file-visiting or no-file buffers
@@ -367,17 +328,13 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "ORG")
-              (toggle-frame-maximized)
               (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "ORG"))
           (progn
-            (make-frame)
-            (set-frame-name "ORG")
-            (toggle-frame-maximized)
-            (lawlist-frame-bufs-reset))) )
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+            (lawlist-make-frame)
+            (set-frame-name "ORG"))) )
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 2 -- either file-visiting or no-file buffers
@@ -390,17 +347,13 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "MAIN")
-              (toggle-frame-maximized)
               (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "MAIN"))
           (progn
-            (make-frame)
-            (set-frame-name "MAIN")
-            (toggle-frame-maximized)
-            (lawlist-frame-bufs-reset))) )
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+            (lawlist-make-frame)
+            (set-frame-name "MAIN"))) )
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 3 -- either file-visiting or no-file buffers
@@ -413,24 +366,19 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "SYSTEM")
-              (toggle-frame-maximized)
               (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "SYSTEM"))
           (progn
-            (make-frame)
-            (set-frame-name "SYSTEM")
-            (toggle-frame-maximized)
-            (lawlist-frame-bufs-reset))) )
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+            (lawlist-make-frame)
+            (set-frame-name "SYSTEM"))) )
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 4
     ;; display buffer in the existing frame, without other windows
     ((regexp-match-p special-buffer-regexp (buffer-name buffer))
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 5
@@ -449,17 +397,13 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "MISCELLANEOUS")
-              (toggle-frame-maximized)
               (lawlist-frame-bufs-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "MISCELLANEOUS"))
           (progn
-            (make-frame)
-            (set-frame-name "MISCELLANEOUS")
-            (toggle-frame-maximized)
-            (lawlist-frame-bufs-reset))))
-      (if (and (featurep 'init-frames) frame-bufs-mode)
-        (frame-bufs-add-buffer (get-buffer buffer) (selected-frame)))
+            (lawlist-make-frame)
+            (set-frame-name "MISCELLANEOUS"))))
+      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 6
@@ -545,27 +489,6 @@
       (ns-hide-emacs 'activate)
       (lawlist-find-file f)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; WANDERLUST ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun wanderlust-display-buffer-pop-up-frame ()
-  (if (get-frame "WANDERLUST")
-      (switch-to-frame "WANDERLUST")
-    ;; If unnamed frame exists, then take control of it.
-    (catch 'break (dolist (frame (frame-list))
-      (if (not (string-match regexp-frame-names (frame-parameter frame 'name)))
-        (throw 'break (progn
-          (switch-to-frame (frame-parameter frame 'name))
-          (set-frame-name "WANDERLUST")
-          (toggle-frame-maximized)
-          (lawlist-frame-bufs-reset))))))
-    ;; If dolist found no unnamed frame, then create / name it.
-    (if (not (get-frame "WANDERLUST"))
-      (progn
-        (make-frame)
-        (set-frame-name "WANDERLUST")
-        (toggle-frame-maximized)
-        (lawlist-frame-bufs-reset)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  MISCELLANEOUS FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun ido-frame ()
@@ -649,14 +572,10 @@
           (if (string= "Attempt to delete the sole visible or iconified frame" 
               (cadr e))
             (bury-buffer)))))
-  (if (and
-        (equal (buffer-name) "*scratch*")
-        (file-exists-p "/Users/HOME/.0.data/.0.emacs/*scratch*")
-        (not (equal buffer-file-name "/Users/HOME/.0.data/.0.emacs/*scratch*")))
+  (if (equal (buffer-name) "*scratch*")
     (progn
-      (rename-buffer "*to-be-deleted*")
-      (lawlist-find-file "/Users/HOME/.0.data/.0.emacs/*scratch*")
-      (kill-buffer "*to-be-deleted*")))
+      (find-file (concat root.d ".scratch"))
+      (kill-buffer "*scratch*")))
 (tabbar-display-update))
 
 (defun tabbar-buffer-show-groups-toggle-switch ()
@@ -764,12 +683,12 @@
 (defun tabbar-move-right ()
 "Move current tab to right"
 (interactive)
-(tabbar-move +1))
+  (tabbar-move +1))
  
 (defun tabbar-move-left ()
 "Move current tab to left"
 (interactive)
-(tabbar-move -1))
+  (tabbar-move -1))
 
 ;;;;;;;;;;;;;;;;;;;;;;; (setq frame-bufs-mode nil)   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -778,7 +697,6 @@
   "*BUFFER LIST*" "*Help*" "*Compile-Log*" "*DONE*")
   "*Reagexps matches buffer names always included tabs.")
 
-;; (setq tabbar-buffer-list-function 'buffer-lawlist-function)
 (defun buffer-lawlist-function ()
   (let* ((hides (list ?\ ?\*))
   (re (regexp-opt tabbar+displayed-buffers))
@@ -798,8 +716,6 @@
   (cons cur-buf tabs))))
 
 (defun tabbar-buffer-groups ()
-  "Return the list of group names the current buffer belongs to.
-  Return a list of one element based on major mode."
   (list
     (cond
       ((or (get-buffer-process (current-buffer))
@@ -811,8 +727,6 @@
         "*Buffer List*" "*BUFFER LIST*" "*Help*"))
         "system")
       ((eq major-mode '(run-latexmk dired-mode help-mode apropos-mode Info-mode Man-mode)) "system")
-         ;; TRUMPS ALL ATTEMPTS AT OTHERWISE CATEGORIZING BUFFERS WITH ASTERICKS
-      ;; ((string-equal "*" (substring (buffer-name) 0 1)) "system")
       ((eq major-mode 'org-mode) "org")
       ((member (buffer-name) '("*TODO*" "*DONE*" "*Org Agenda*")) "org")
       ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
@@ -822,10 +736,6 @@
         gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
         "wanderlust")
       ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
-      ;;  (t
-      ;;    (if (and (stringp mode-name) (save-match-data (string-match "[^ ]" mode-name)))
-      ;;       mode-name
-      ;;       (symbol-name major-mode))) )))
       (t "miscellaneous") )))
 
 (defun record-frame-buffer ()
@@ -852,17 +762,8 @@
         (kill-buffer "nil")) ))))
 
 (defun lawlist-tabbar-cycle (&optional backward type)
-  "Cycle to the next available tab.
-  The scope of the cyclic navigation through tabs is specified by the
-  option `tabbar-cycle-scope'.
-  If optional argument BACKWARD is non-nil, cycle to the previous tab
-  instead.
-  Optional argument TYPE is a mouse event type (see the function
-  `tabbar-make-mouse-event' for details)."
   (let* ((tabset (tabbar-current-tabset t))
          (ttabset (tabbar-get-tabsets-tabset))
-         ;; If navigation through groups is requested, and there is
-         ;; only one group, navigate through visible tabs.
          (cycle (if (and (eq tabbar-cycle-scope 'groups)
                          (not (cdr (tabbar-tabs ttabset))))
                     'tabs
@@ -871,45 +772,25 @@
     (when tabset
       (setq selected (tabbar-selected-tab tabset))
       (cond
-       ;; Cycle through visible tabs only.
        ((eq cycle 'tabs)
         (setq tab (tabbar-tab-next tabset selected backward))
-        ;; When there is no tab after/before the selected one, cycle
-        ;; to the first/last visible tab.
         (unless tab
           (setq tabset (tabbar-tabs tabset)
-                tab (car (if backward (last tabset) tabset))))
-        )
-       ;; Cycle through tab groups only.
+                tab (car (if backward (last tabset) tabset)))) )
        ((eq cycle 'groups)
         (setq tab (tabbar-tab-next ttabset selected backward))
-        ;; When there is no group after/before the selected one, cycle
-        ;; to the first/last available group.
         (unless tab
           (setq tabset (tabbar-tabs ttabset)
-                tab (car (if backward (last tabset) tabset))))
-        ;; (cdr tab) = name of tab group (e.g., main, org, system, wanderlust)
-        ;; (car tab) = the actual buffer, not its common name
-        ;; (if (equal (format "%s" (cdr tab)) "main")
-        ;;    (... do something ))
-       )
+                tab (car (if backward (last tabset) tabset)))) )
        (t
-        ;; Cycle through visible tabs then tab groups.
         (setq tab (tabbar-tab-next tabset selected backward))
-        ;; When there is no visible tab after/before the selected one,
-        ;; cycle to the next/previous available group.
         (unless tab
           (setq tab (tabbar-tab-next ttabset selected backward))
-          ;; When there is no next/previous group, cycle to the
-          ;; first/last available group.
           (unless tab
             (setq tabset (tabbar-tabs ttabset)
                   tab (car (if backward (last tabset) tabset))))
-          ;; Select the first/last visible tab of the new group.
           (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
-                tab (car (if backward (last tabset) tabset))))
-        ))
-        ;; (tabbar-click-on-tab tab type))))
+                tab (car (if backward (last tabset) tabset)))) ))
        (display-buffer (get-buffer (car tab))))))
 
 (defun lawlist-tabbar-forward-group ()
@@ -933,17 +814,11 @@
       (format "%s" (cdr group))) (tabbar-tabs (tabbar-get-tabsets-tabset)))))
     (mapc #'(lambda (group)
               (when (string= group-name (format "%s" (cdr group)))
-              (setq tab-group group)
-              ) ;; end of when
-            ) ;; end of lambda
-      (tabbar-tabs (tabbar-get-tabsets-tabset))
-    ) ;; end of mapc
+              (setq tab-group group) ))
+      (tabbar-tabs (tabbar-get-tabsets-tabset)) )
     (if (not (equal (format "%s" (car tab-group)) "#<killed buffer>") )
       (progn
-        (switch-to-buffer (car tab-group))
-        ;; (message "Switched to tab-group \"%s\",
-        ;;   current buffer: %s" (cdr tab-group) (car tab-group))
-      )
+        (switch-to-buffer (car tab-group)) )
       ;; else
       (message "(car tab-group):  %s" (car tab-group))
       (and
@@ -960,12 +835,8 @@
           (setq bl (cdr bl)))
           (when (and (setq sibling (or (car bl) sibling))
                 (buffer-live-p sibling))
-            ;; Move sibling buffer in front of the buffer list.
             (save-current-buffer (switch-to-buffer sibling))
-            (message "\"%s\" moved to the front of the buffer-list." sibling))) )
-    ) ;; end of if
-  ) ;; end of let
- ) ;; end of defun
+            (message "\"%s\" moved to the front of the buffer-list." sibling))) ))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DESKTOP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -999,14 +870,12 @@
   (interactive)
 (defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
 (setq desktop-save-mode t)
-(desktop-auto-save-set-timer)
+;; (desktop-auto-save-set-timer)
 (setq desktop-restore-frames nil)
-(setq desktop-dirname           "/Users/HOME/.0.data/.0.emacs/"
-    desktop-base-file-name      ".desktop"
-    desktop-base-lock-name      ".lock"
+(setq desktop-dirname           root.d
     desktop-path                (list desktop-dirname)
     desktop-save                t
-    desktop-files-not-to-save   "\\*scratch\\*\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
+    desktop-files-not-to-save   "\\.todo\\|\\.scratch\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
     desktop-load-locked-desktop nil )
 (setq desktop-buffers-not-to-save
         (concat "\\("
@@ -1018,7 +887,6 @@
     (add-to-list 'desktop-modes-not-to-save 'info-lookup-mode)
     (add-to-list 'desktop-modes-not-to-save 'fundamental-mode)
   (if (file-exists-p (desktop-full-file-name))
-;;  (if (file-exists-p "/Users/HOME/.0.data/.0.emacs/.desktop")
   (let ((desktop-first-buffer nil)
         (desktop-buffer-ok-count 0)
         (desktop-buffer-fail-count 0)
@@ -1045,7 +913,7 @@
           (sit-for 1))))
       (run-hooks 'desktop-delay-hook)
       (setq desktop-delay-hook nil)
-      (desktop-restore-frameset)
+      ;; (desktop-restore-frameset)
       (run-hooks 'desktop-after-read-hook)
        (setq desktop-saved-frameset nil)
       t))
