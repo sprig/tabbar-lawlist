@@ -410,7 +410,7 @@
     ;; default display for no-file-visiting buffers
     (t nil) ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun regexp-match-p (regexps string)
 "Before the lisp function, define the variable like this:\n
@@ -427,8 +427,9 @@
       (if (string-match regexp string)
         (throw 'matched t)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GENERIC FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; http://www.emacswiki.org/emacs/frame-fns.el
 (defun get-frame-name (&optional frame)
   "Return the string that names FRAME (a frame).  Default is selected frame."
   (unless frame (setq frame (selected-frame)))
@@ -436,6 +437,7 @@
       (cdr (assq 'name (frame-parameters frame)))
     (error "Function `get-frame-name': Argument not a frame: `%s'" frame)))
 
+;; http://www.emacswiki.org/emacs/frame-fns.el
 (defun get-frame (frame)
   "Return a frame, if any, named FRAME (a frame or a string).
   If none, return nil.
@@ -452,6 +454,7 @@
           "Function `get-frame-name': Arg neither a string nor a frame: `%s'"
           frame))))
 
+;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 (defun switch-to-frame (frame-name)
   (let ((frames (frame-list)))
     (catch 'break
