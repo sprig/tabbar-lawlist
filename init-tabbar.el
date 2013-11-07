@@ -52,131 +52,6 @@
     (t "non-associated") ))))
   ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LAWLIST CHOICES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defvar wanderlust-insert nil)
-(defvar system-insert nil)
-(defvar main-insert nil)
-(defvar org-insert nil)
-(defun tabbar-choice ()
-(interactive)
-  "Different choices relating to tab groups, frame-bufs-mode, and the like."
-  (message "[f]rame-bufs | [d]efault | [c]ourt | [a]ll | [v/h] Tile" )
-  (let* (
-    (a (read-char-exclusive))
-    (choice (case a
-      ((?d)
-        (setq frame-bufs-mode nil)
-        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (global-set-key [?\s-\~] 'lawlist-tabbar-backward-group)
-        (global-set-key [?\s-\`] 'lawlist-tabbar-forward-group)
-        (tabbar-display-update)
-        (message "You have chosen: \"primary grouping\"") )
-      ((?c)
-;;        (setq frame-bufs-mode t)
-;;        (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-;;        (setq tabbar-buffer-groups-function 'tabbar-buffer-groups)
-        (global-set-key [?\s-\`] nil)
-        (global-set-key [?\s-\`] (lambda () (interactive)
-          (if (equal "MAIN" (frame-parameter nil 'name))
-            (switch-to-frame "ORG")
-            (switch-to-frame "MAIN")) ))
-;;        (if (equal "MAIN" (frame-parameter nil 'name))
-;;            (progn
-;;              (switch-to-frame "ORG")
-;;              (get-group "org"))
-;;            (switch-to-frame "MAIN")
-;;            (get-group "main"))))
-        (if (not (or (equal "MAIN" (frame-parameter nil 'name))
-                     (equal "ORG" (frame-parameter nil 'name))))
-          (switch-to-frame "MAIN"))
-        (tabbar-display-update)
-        (message "You have chosen: \"COURT\""))
-      ((?a)
-        (setq frame-bufs-mode nil)
-        (setq tabbar-buffer-list-function 'tabbar-buffer-list)
-        (setq tabbar-buffer-groups-function (lambda () (list "lawlist")))
-        (global-set-key [?\s-\~] 'tabbar-backward-tab)
-        (global-set-key [?\s-\`] 'tabbar-forward-tab)
-        (switch-to-frame "SYSTEM")
-        (tabbar-display-update)
-        (message "You have chosen: \"everything\""))
-      ((?v)
-        ;; requires installation of both frame-cmds and frame-fns
-        ;; http://www.emacswiki.org/emacs/frame-cmds.el
-        ;; http://www.emacswiki.org/emacs/frame-fns.el
-        (record-frame-buffer)
-        (refresh-frames-buffers)
-        (tile-frames-vertically)
-        (restore-frame-buffer)
-        (tabbar-display-update)
-        (sit-for 0))
-      ((?h)
-        ;; requires installation of both frame-cmds and frame-fns
-        ;; http://www.emacswiki.org/emacs/frame-cmds.el
-        ;; http://www.emacswiki.org/emacs/frame-fns.el
-        (record-frame-buffer)
-        (refresh-frames-buffers)
-        (tile-frames-horizontally)
-        (restore-frame-buffer)
-        (tabbar-display-update)
-        (sit-for 0))
-      ((?f)
-        ;; A modified version of frame-bufs by Al Parker is included in the lawlist repository.
-        (unless (not (and (featurep 'init-frames) frame-bufs-mode))
-          (error "Error: frame-bufs-mode is already active."))
-        (global-set-key [?\s-\~] 'cycle-backward-frames-groups)
-        (global-set-key [?\s-\`] 'cycle-forward-frames-groups)
-        (record-frame-buffer)
-        (if (get-frame "WANDERLUST" )
-          (progn
-          (get-group "wanderlust")
-          (setq wanderlust-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
-        (if (get-frame "SYSTEM")
-          (progn
-          (get-group "system")
-          (setq system-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
-        (if (get-frame "MAIN")
-          (progn
-          (get-group "main")
-          (setq main-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
-        (if (get-frame "ORG")
-          (progn
-          (get-group "org")
-          (setq org-insert (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t))))))
-        (setq frame-bufs-mode t)
-        (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; 'tabbar-buffer-list or 'buffer-lawlist-function
-        (setq tabbar-buffer-groups-function (lambda () (list (cond 
-          ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs") 
-          (t "non-associated") ))))
-        (if (get-frame "WANDERLUST")
-          (progn
-            (switch-to-frame "WANDERLUST")
-            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list wanderlust-insert)))))
-        (if (get-frame "SYSTEM")
-          (progn
-            (switch-to-frame "SYSTEM")
-            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list system-insert)))))
-        (if (get-frame "MAIN")
-          (progn
-            (switch-to-frame "MAIN")
-            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list main-insert)))))
-        (if (get-frame "ORG")
-          (progn
-            (switch-to-frame "ORG")
-            (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list org-insert)))))
-        (tabbar-display-update)
-        (dolist (frame (frame-list))
-          (switch-to-frame (frame-parameter frame 'name) )
-          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
-          ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
-          ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-          (if (get-buffer "nil")
-            (kill-buffer "nil")) )
-        (restore-frame-buffer) )
-      (t (message "No changes have been made.")) )))))
-
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun example ()
@@ -410,7 +285,7 @@
     ;; default display for no-file-visiting buffers
     (t nil) ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun regexp-match-p (regexps string)
 "Before the lisp function, define the variable like this:\n
@@ -427,7 +302,7 @@
       (if (string-match regexp string)
         (throw 'matched t)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 (defun get-frame-name (&optional frame)
@@ -741,14 +616,6 @@
       ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
       (t "miscellaneous") )))
 
-(defun record-frame-buffer ()
-  (setq current-frame (frame-parameter nil 'name))
-  (setq restore-buffer (buffer-name)) )
-
-(defun restore-frame-buffer ()
-  (switch-to-frame current-frame)
-  (switch-to-buffer restore-buffer) )
-
 (defun refresh-frames-buffers ()
 (interactive)
   (if (not (and (featurep 'init-frames) frame-bufs-mode))
@@ -840,91 +707,6 @@
                 (buffer-live-p sibling))
             (save-current-buffer (switch-to-buffer sibling))
             (message "\"%s\" moved to the front of the buffer-list." sibling))) ))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DESKTOP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun lawlist-desktop-restore-file-buffer (buffer-filename
-                                    _buffer-name
-                                    _buffer-misc)
-  "Alternative version for desktop.el restore a file buffer."
-  (when buffer-filename
-    (if (or (file-exists-p buffer-filename)
-      (let ((msg (format "Desktop: File \"%s\" no longer exists."
-             bufferfilename)))
-        (if desktop-missing-file-warning
-      (y-or-n-p (concat msg " Re-create buffer? "))
-    (message "%s" msg)
-    nil)))
-  (let* ((auto-insert nil) ; Disable auto insertion
-         (coding-system-for-read
-    (or coding-system-for-read
-        (cdr (assq 'buffer-file-coding-system
-             desktop-buffer-locals))))
-         (buf (lawlist-find-file buffer-filename)))
-    (and (not (eq major-mode desktop-buffer-major-mode))
-         (functionp desktop-buffer-major-mode)
-         (funcall desktop-buffer-major-mode))
-    buf)
-      nil)))
-
-(defvar desktop-modes-not-to-save nil)
-
-(defun lawlist-desktop-read (&optional dirname)
-  (interactive)
-(defalias 'desktop-restore-file-buffer 'lawlist-desktop-restore-file-buffer)
-(setq desktop-save-mode t)
-;; (desktop-auto-save-set-timer)
-(setq desktop-restore-frames nil)
-(setq desktop-dirname           root.d
-    desktop-path                (list desktop-dirname)
-    desktop-save                t
-    desktop-files-not-to-save   "\\.todo\\|\\.scratch\\|\\*bbdb\\*\\|\\*BBDB\\*\\|\\*TODO\\*\\|\\*DONE\\*" ;; "^$"  reload tramp paths
-    desktop-load-locked-desktop nil )
-(setq desktop-buffers-not-to-save
-        (concat "\\("
-                "^nn\\.a[0-9]+\\|\\.log\\|(ftp)\\|^tags\\|^TAGS"
-                "\\|\\.emacs.*\\|\\.diary\\|\\.newsrc-dribble"
-                "\\)$"))
-    (add-to-list 'desktop-modes-not-to-save 'dired-mode)
-    (add-to-list 'desktop-modes-not-to-save 'Info-mode)
-    (add-to-list 'desktop-modes-not-to-save 'info-lookup-mode)
-    (add-to-list 'desktop-modes-not-to-save 'fundamental-mode)
-  (if (file-exists-p (desktop-full-file-name))
-  (let ((desktop-first-buffer nil)
-        (desktop-buffer-ok-count 0)
-        (desktop-buffer-fail-count 0)
-        (owner (desktop-owner))
-        (desktop-save nil))
-    (if (and owner
-       (memq desktop-load-locked-desktop '(nil ask))
-       (or (null desktop-load-locked-desktop)
-           (daemonp)
-           (not (y-or-n-p (format "Warning: desktop file appears to be in use by PID %s.\n\
-      Using it may cause conflicts.  Use it anyway? " owner)))))
-        (let ((default-directory desktop-dirname))
-    (setq desktop-dirname nil)
-    (run-hooks 'desktop-not-loaded-hook)
-    (unless desktop-dirname
-      (message "Desktop file in use; not loaded.")))
-      (desktop-lazy-abort)
-      (load (desktop-full-file-name) t t t)
-      (setq desktop-file-modtime (nth 5 (file-attributes (desktop-full-file-name))))
-      (unless owner
-        (condition-case nil
-      (desktop-claim-lock)
-    (file-error (message "Couldn't record use of desktop file")
-          (sit-for 1))))
-      (run-hooks 'desktop-delay-hook)
-      (setq desktop-delay-hook nil)
-      ;; (desktop-restore-frameset)
-      (run-hooks 'desktop-after-read-hook)
-       (setq desktop-saved-frameset nil)
-      t))
-      (desktop-clear)
-      (let ((default-directory desktop-dirname))
-        (run-hooks 'desktop-no-desktop-file-hook))
-      (message "No desktop file.")
-      nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
