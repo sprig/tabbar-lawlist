@@ -3,7 +3,7 @@ TABBAR ENHANCEMENTS
 
 This is a work in progress (with ongoing changes) that is being developed with current versions of Emacs Trunk.  The tabbar-lawlist repository contains various configurations and functions for enhancing the use of Tabbar and Frame-Bufs with Emacs.
 
-A slightly modified version of Tabbar 2.0 is included within this repository, except the *.tiff files in the original source.  The main changes are hard-coded fonts for the appearance of the tabs.  Alternate functions are set forth within `init-tabbar.el`, so as not to substantially alter `tabbar.el` itself.
+The most recent version of tabbar can be found here:  http://www.emacswiki.org/emacs/TabBarMode
 
 The file `init-tabbar.el` has been configured to use five frames (SYSTEM; MAIN; WANDERLUST; ORG; MISCELLANEOUS).  If `frame-bufs-mode` is enabled, Tabbar will group tabs on a per frame basis on-the-fly based upon the functions `frame-bufs-make-associated` and `frame-bufs-make-non-associated` that can be used once the function `frame-bufs` brings up the buffer menu window.  When *not* using the `frame-bufs` buffer menu window, the functions `associate-current-buffer` and `disassociate-current-buffer` can be used to add or remove buffers from the `frame-bufs-buffer-list`.  The function `lawlist-frame-bufs-reset` wipes the entire slate clean as to the selected frame.
 
