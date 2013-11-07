@@ -13,7 +13,7 @@ There are two methods for adding and removing buffers from the `frame-bufs-buffe
  
 * The second option is used when *not* using the `frame-bufs` buffer menu window.  Buffers are added with `associate-current-buffer`, and buffers are removed with `disassociate-current-buffer`.  The function `lawlist-frame-bufs-reset` wipes the entire slate clean as to the selected frame.
 
-I have modified `frame-bufs.el` (version 1.92) and `buff-menu.el` (from Emacs version 23.4) by renaming functions and variables so that the two files work in harmony, without conflicting with a current version of buff-menu.el that gets hard-coded into the Emacs executable during the build process.
+I have modified `frame-bufs.el` (version 1.92) and `buff-menu.el` (from Emacs version 23.4) by renaming functions and variables so that the two files work in harmony, without conflicting with a current version of `buff-menu.el` that gets hard-coded into the Emacs executable during the build process.
 
 The function `lawlist-find-file` and the functions for `display-buffer-alist`, along with a modified version of `ns-find-file`, create / locate frames with specific names based upon file type / file name / buffer name and associate them if `frame-bufs-mode` is active.
 
