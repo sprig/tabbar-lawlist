@@ -7,7 +7,7 @@ The most recent version of tabbar can be found here:  http://www.emacswiki.org/e
 
 The file `init-tabbar.el` has been configured to use five frames (SYSTEM; MAIN; WANDERLUST; ORG; MISCELLANEOUS).
 
-There are two methods for adding and removing buffers fromthe `frame-bufs-buffer-list`.
+There are two methods for adding and removing buffers from the `frame-bufs-buffer-list`.
 
 * The first method involves activating the `*BUFFER LIST*` menu buffer with `M-x frame-bufs RET`.  Buffers are added with `frame-bufs-make-associated`, and buffers are removed with `frame-bufs-make-non-associated`.  Once the selections are made, the function `frame-bufs-menu-execute` is used to solidify those choices.
  
