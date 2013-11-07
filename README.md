@@ -5,7 +5,9 @@ This is a work in progress (with ongoing changes) that is being developed with c
 
 The most recent version of tabbar can be found here:  http://www.emacswiki.org/emacs/TabBarMode
 
-The file `init-tabbar.el` has been configured to use five frames (SYSTEM; MAIN; WANDERLUST; ORG; MISCELLANEOUS).  If `frame-bufs-mode` is enabled, Tabbar will group tabs on a per frame basis on-the-fly based upon the functions `frame-bufs-make-associated` and `frame-bufs-make-non-associated` that can be used once the function `frame-bufs` brings up the buffer menu window.  When *not* using the `frame-bufs` buffer menu window, the functions `associate-current-buffer` and `disassociate-current-buffer` can be used to add or remove buffers from the `frame-bufs-buffer-list`.  The function `lawlist-frame-bufs-reset` wipes the entire slate clean as to the selected frame.
+The file `init-tabbar.el` has been configured to use five frames (SYSTEM; MAIN; WANDERLUST; ORG; MISCELLANEOUS).
+
+There are two methods for adding and removing buffers fromthe `frame-bufs-buffer-list`.  The first method involves activating the `*BUFFER LIST*` menu buffer with `M-x frame-bufs RET` -- under that situation, buffers are added with `frame-bufs-make-associated` and buffers are removed with `frame-bufs-make-non-associated`.  When *not* using the `frame-bufs` buffer menu window, the functions `associate-current-buffer` and `disassociate-current-buffer` can be used to add or remove buffers from the `frame-bufs-buffer-list`.  The function `lawlist-frame-bufs-reset` wipes the entire slate clean as to the selected frame.
 
 I have modified frame-bufs.el (version 1.92) and buff-menu.el (from Emacs version 23.4) by renaming functions and variables so that the two files work in harmony, without conflicting with a current version of buff-menu.el that gets hard-coded into the Emacs executable during the build process.
 
