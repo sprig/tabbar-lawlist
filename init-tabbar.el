@@ -1,7 +1,5 @@
 ;; init-tabbar.el
 
-;; Version (alpha) -- frames / tab-groups:  SYSTEM, MAIN, WANDERLUST, ORG
-
 ;; Requires a current version of Emacs Trunk (24.3.50 (9.0)) and
 ;; modified versions of frame-bufs and buff-menu (consolidated into one file)
 ;; and a modified version of tabbar, all of which are contained within the lawlist
@@ -29,6 +27,8 @@
 ;; http://www.emacswiki.org/emacs/frame-cmds.el
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; REFRESH TABBAR
 ;; (tabbar-current-tabset 't)
 ;; (tabbar-display-update)
@@ -45,12 +45,10 @@
   (setq tabbar-use-images nil)
   (setq tabbar-cycle-scope 'tabs)
   (setq frame-bufs-mode t)
-  (setq tabbar-buffer-list-function 'tabbar-buffer-list)
   (setq tabbar-buffer-groups-function (lambda () (list
-    (cond 
-    ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs")
-    (t "non-associated") ))))
-  ))
+    (cond
+      ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs")
+      (t "non-associated") )))) ))
 
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -575,6 +573,8 @@
   "*BUFFER LIST*" "*Help*" "*Compile-Log*" "*DONE*")
   "*Reagexps matches buffer names always included tabs.")
 
+;; (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; default
+;; (setq tabbar-buffer-list-function 'buffer-lawlist-function)
 (defun buffer-lawlist-function ()
   (let* ((hides (list ?\ ?\*))
   (re (regexp-opt tabbar+displayed-buffers))
