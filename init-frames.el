@@ -1,23 +1,14 @@
 ;; init-frames.el
 
-;; This is a modified version of frame-bufs.el by Al Parker, and a modified version of
-;; buff-menu.el from Emacs 23.4.  It is used in conjunction with init-tabbar.el,
-;; and tabbar.el by David Ponce (which has been slightly modified by lawlist).
-;; Please refer to the lawlist repository:  https://github.com/lawlist/tabbar-lawlist
+;; This is a modified version of frame-bufs.el by Al Parker, and a modified version
+;; of buff-menu.el from Emacs 23.4.  Please refer to the readme.md file within the
+;; lawlist repository:  https://github.com/lawlist/tabbar-lawlist
 
-;;  (setq frame-bufs-mode t)
-
-;; M-x frame-bufs-dismiss-buffer -- control+option+command+n
-;; M-x associate-current-buffer -- control+option+command+a
-;; M-x lawlist-frame-bufs-reset -- control+option+command+r
-
-(defconst frame-bufs-hook-assignments
-  '(
-    (buff-menu-mode-hook . frame-bufs-set-up-buff-menu)
-    (window-configuration-change-hook . frame-bufs-window-change)
-    (before-make-frame-hook . frame-bufs-before-make-frame)
-    (after-make-frame-functions . frame-bufs-after-make-frame)
-    ))
+(defconst frame-bufs-hook-assignments '(
+  (buff-menu-mode-hook . frame-bufs-set-up-buff-menu)
+  (window-configuration-change-hook . frame-bufs-window-change)
+  (before-make-frame-hook . frame-bufs-before-make-frame)
+  (after-make-frame-functions . frame-bufs-after-make-frame) ))
 
 (defun frame-bufs (&optional files-only)
   "Display a list of names of existing buffers.
@@ -85,7 +76,6 @@
           (frame-parameter frame 'frame-bufs-buffer-list))))
      ;; Return the associated-buffer list, sorted appropriately for this frame.
      (frame-bufs-sort-buffers frame (frame-parameter frame 'frame-bufs-buffer-list)))))
-
 
 (defun frame-bufs-list-buffers-noselect (&optional files-only buffer-list)
   "Non-null optional arg FILES-ONLY means mention only file buffers.
@@ -263,7 +253,6 @@
 ;;; User Options
 ;;; ---------------------------------------------------------------------
 
-
 (defgroup frame-bufs nil
   "Extend buff-menu to allow listing of buffers associated with particular frame."
   :group 'convenience)
@@ -322,7 +311,6 @@
   frame that was selected when the frame-creating command was called."
   :group 'frame-bufs
   :type 'boolean)
-
 
 (defcustom frame-bufs-include-init-buffer nil
   "Whether a new frame's associated buffers include the last buffer before creation.
@@ -591,29 +579,6 @@ already present."
   (dolist (buf bufs)
     (frame-bufs-add-buffer buf frame)))
 
-
-;;; ---------------------------------------------------------------------
-;;; Frame Initialization and Clean Up
-;;; ---------------------------------------------------------------------
-
-;; Set the associated-buffer list for frames already in existence when frame-bufs
-;; is enabled.  We try to DTRT as much as possible:  If buffers have been
-;; selected, they belong to the associated list.  If the user wants displayed
-;; buffers as well, we grab all the currently displayed buffers.  If
-;; frame-bufs had previously been enabled and is now being re-enabled, we
-;; don't overwrite the existing associated list, but just add to it.
-;;
-;; NOTE:  tabbar-mode (without frame-bufs-mode) does not use the buffer-list
-;; with respect to frame association.  When frame-bufs-mode is activated, the
-;; following function reads the existing buffer-list in each frame in order
-;; to associate those buffers with `frame-bufs-buffer-list`.  However, said
-;; function is run on each frame AFTER frame-bufs-mode has been activated --
-;; which is too late to take a read of the tab groups that were displayed
-;; on each frame with the help of `init-tabbar.el`.  So, a read of the tab
-;; groups on each frame needs to be taken and preserved with a variable
-;; BEFORE frame-bufs-mode is activated -- the following code is used elsewhere:
-;; (mapcar 'tabbar-tab-value (tabbar-tabs (tabbar-current-tabset t)))
-;;
 (defun frame-bufs-initialize-existing-frame (frame)
 (frame-bufs-add-buffers
   (append
@@ -624,40 +589,6 @@ already present."
       (window-list frame 'no-minibuf)))
                          )
                          frame))
-
-;; The next three functions handle initialization of the associated-buffer
-;; list for newly created frames.  The procedure is as follows: 
-
-;; (1) frame-bufs-before-make-frame is called before the new frame is
-;;     created, and records the current buffer, the associated-buffer list of
-;;     the selected frame, and the list of all current existing buffers.
-
-;; (2) frame-bufs-after-make-frame is called immediately after the new frame
-;;     is created.  It sets the buffer predicate of the new frame (if
-;;     necessary), and arranges for frame-bufs-initialize-new-frame to be
-;;     called after the current command (the one creating the new frame)
-;;     terminates.  We defer initialization of the associated-buffer list of
-;;     the new frame for the sake of the option
-;;     `frame-bufs-include-new-buffers'.  At the time the frame is created,
-;;     we aren't in a position to determine what buffers are created by the
-;;     command that also creates the new frame.  So we put off initialization
-;;     until we have the information.
-
-;; (3) frame-bufs-initialize-new-frame then performs all the
-;;     associate-buffer-list initialization.  Specifically, it sets the new
-;;     frame's associated-buffer list according to the variables `
-;;     frame-bufs-new-frames-inherit', `frame-bufs-include-new-buffers', and
-;;     `frame-bufs-include-init-buffer'.
-
-;; Note that we do not engage in normal list initialization when the new
-;; frame is created by a call to frame-bufs or buff-menu-other-window
-;; (e.g., when pop-up-frames is non-nil).  In that case, the buffer menu is
-;; displayed on a new frame, and we want the buffer menu's associated-buffer
-;; list to be just like that of the frame from which the buffer menu is
-;; called.  So those functions let-bind `frame-bufs-no-list-initialization'
-;; to t, disabling the above routine (aside from setting the buffer predicate
-;; of the new frame), and then handle associated-buffer list initialization
-;; themselves.
 
 (defun frame-bufs-before-make-frame ()
   (unless frame-bufs-no-list-initialization
@@ -923,10 +854,6 @@ work backwards."
                              param
                              (copy-sequence (frame-parameter oframe param)))))))
 
-;;; ---------------------------------------------------------------------
-;;;  Redefined Buffer Menu Commands 
-;;; ---------------------------------------------------------------------
-
 (defun frame-bufs-menu-unmark (&optional backup)
   "Cancel all requested operations on buffer on this line and move down.
 Optional ARG means move up."
@@ -944,7 +871,6 @@ Optional ARG means move up."
     (delete-char (if frame-bufs-mode 4 3))
     (insert (concat " " readonly mod associated)))
   (forward-line (if backup -1 1)))
-
 
 (defun frame-bufs-menu-execute ()
   "Save and/or delete buffers marked with \\<buff-menu-mode-map>\\[buff-menu-save] or \\<buff-menu-mode-map>\\[buff-menu-delete]."
@@ -1008,7 +934,6 @@ Optional ARG means move up."
     (kill-buffer "nil"))
   (other-window 1) )
 
-
 (defun buff-menu-sort (column)
   "Sort the buffer menu by COLUMN."
   (when column
@@ -1046,7 +971,6 @@ Optional ARG means move up."
             (delete-char 1)
             (insert m2)))
         (forward-line)))))
-
 
 (defun buff-menu-buffer+size (name size &optional name-props size-props)
   (if (> (+ (string-width name) (string-width size) 2)
@@ -1107,7 +1031,6 @@ Optional ARG means move up."
   (let ((frame-bufs-mode nil)
         (buff-menu-buffer-column 4))
     ad-do-it))
-
 
 (defgroup buff-menu-group nil
   "Show a menu of all buffers in a buffer."
@@ -1382,6 +1305,7 @@ Letters do not insert themselves; instead, they are commands.
 	  (if error-if-non-existent-p
 	      (error "No buffer on this line")
 	    nil)))))
+
 (defun buff-menu (&optional arg)
   "Make a menu of buffers so you can save, delete or select them.
   With argument, show only buffers that are visiting files.
@@ -1637,12 +1561,10 @@ Letters do not insert themselves; instead, they are commands.
         (insert line))
       (message "Buried buffer moved to the end"))))
 
-
 (defun buff-menu-view ()
   "View this line's buffer in View mode."
   (interactive)
   (view-buffer (buff-menu-buffer t)))
-
 
 (defun buff-menu-view-other-window ()
   "View this line's buffer in View mode in another window."
@@ -1692,99 +1614,6 @@ Letters do not insert themselves; instead, they are commands.
 			  (if column (downcase name) "visited order"))
 	      'mouse-face 'highlight
 	      'keymap buff-menu-sort-button-map))
-
-;; Criteria That Control Buffer-Frame Association
-;; ==============================================
-
-;; The association between buffers and frames is dynamic:  if a buffer is
-;; selected on a frame, then it becomes associated with that frame.  Note,
-;; then, that a buffer can be associated with more than one frame.
-
-;; In addition, several other variables control which buffers automatically
-;; become associated with a frame:
-
-;; o If `frame-bufs-include-displayed-buffers' is non-nil, then buffers that
-;;   are merely displayed on a frame become associated with the frame, even
-;;   if they have not been selected.
-
-;; o If a buffer's name is a member of `frame-bufs-always-include-names' then
-;;   that buffer is automatically associated with every frame.  The default
-;;   value is ("*scratch*").
-
-;; o Three variables control which buffers are associated with a newly created
-;;   frame:
-;;
-;;   - `frame-bufs-new-frames-inherit': If non-nil, then the buffers
-;;      associated with a new frame include (at least) the buffers that were
-;;      associated with the new frame's "parent," i.e., the frame that was
-;;      selected when the new frame was created.
-;;   - `frame-bufs-include-new-buffers': If non-nil, and the command that
-;;      creates a new frame also creates new buffers, the new buffers are
-;;      associated with the new frame.  (This applies only to buffers that
-;;      are created *after* the new frame is created.)
-;;   - `frame-bufs-include-init-buffer':  If non-nil, then the buffer that is
-;;      current when a new frame is created will be associated with the new
-;;      frame.  If nil, it will not.  (Note that
-;;      frame-bufs-new-frames-inherit takes precedence over this
-;;      variable.  Also note:  If the buffer in question is displayed on the
-;;      new frame when the frame-creating command terminates, it will still
-;;      be associated with the new frame.)
-
-;; Other Commands and Features
-;; ===========================
-
-;; o If `frame-bufs-use-buffer-predicate' is non-nil, each frame's buffer
-;;   predicate is set so that `other-buffer' will prefer buffers associated
-;;   with the selected frame.  Thus, when a buffer is removed from a window
-;;   and automatically replaced with another (as happens, say, when one kills
-;;   a buffer), the newly displayed buffer will, if possible, be another
-;;   frame-associated buffer.  The default value of this variable is t.
-
-;; Frame-bufs provides three other commands that are available everywhere,
-;; not just in the buffer menu:
-
-;; o `frame-bufs-dismiss-buffer' is somewhat analogous to `bury-buffer'.  It
-;;   removes a buffer from the list of buffers associated with a frame, and
-;;   if that buffer is displayed in any windows on the selected frame, it is
-;;   replaced by another buffer (if `frame-bufs-use-buffer-predicate' is
-;;   non-nil, the will be a buffer associated with the selected frame, if
-;;   possible).  When called with no arguments, it acts on the current
-;;   buffer, severing its association with the selected frame.
-
-;; o `frame-bufs-reset-frame' resets a frame's associated-buffer list;
-;;   specifically, it sets the list of associated buffers to the list of
-;;   buffers that have been selected on the frame.  When called with no
-;;   argument, it acts on the current frame.
-
-;; o `frame-bufs-reset-all-frames' resets the associated buffers of all
-;;   frames.
-
-;; By default, none of these commands has a key binding.
-
-;; o The indicator bit used for frame-associated buffers (default `o') can be
-;;   set via the variable `frame-bufs-associated-buffer-bit'.
-
-;; o The strings used to indicate frame-list/full-list state in the buffer
-;;   menu's mode line can be changed by setting the variables
-;;   `frame-bufs-mode-line-frame-list-string' and
-;;   `frame-bufs-mode-line-full-list-string'.  The mode-line indication can
-;;   be turned off by setting `frame-bufs-mode-line-indication' to
-;;   nil.  (This latter variable can be set to any valid mode-line construct;
-;;   users setting this variable to a custom mode-line construct will
-;;   probably want to make use of the variable `frame-bufs-full-list'.)
-
-
-;; o To use a frame's associated-buffer list from within a Lisp progam, it is
-;;   recommended that you work with the list returned by the function
-;;   `frame-bufs-buffer-list'; don't use the value of the
-;;   frame-bufs-buffer-list frame parameter.  The latter can contain internal
-;;   buffers (buffers whose names starts with a space) and dead buffers; it
-;;   is not guaranteed to respect `frame-bufs-always-include-names'; and its
-;;   order is meaningless.  The list returned by `frame-bufs-buffer-list'
-;;   will contain only live, non-internal buffers; be updated to reflect the
-;;   current value of frame-bufs-always-include-names; and be sorted
-;;   stably by selection order on the current frame.
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
