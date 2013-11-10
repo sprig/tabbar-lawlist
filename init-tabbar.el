@@ -261,15 +261,14 @@
     ;; default display for no-file-visiting buffers
     (t nil) ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; https://github.com/kentaro/auto-save-buffers-enhanced
 (defun regexp-match-p (regexps string)
   (catch 'matched
     (dolist (regexp regexps)
       (if (string-match regexp string)
         (throw 'matched t)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 (defun get-frame-name (&optional frame)
@@ -381,7 +380,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;; IF BUILT --with-ns, THEN ALSO USE ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defalias 'ns-find-file 'lawlist-ns-find-file)
-
 (defun lawlist-ns-find-file ()
   "Do a `find-file' with the `ns-input-file' as argument."
   (interactive)
@@ -408,7 +406,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  MISCELLANEOUS FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; BUFFER MODIFICATION STATE INDICATOR
+;; http://www.emacswiki.org/emacs/TabBarMode
 (defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
    (setq ad-return-value
          (if (and (buffer-modified-p (tabbar-tab-value tab))
@@ -481,289 +479,7 @@
     (progn
       (find-file (concat root.d ".scratch"))
       (kill-buffer "*scratch*")))
-(tabbar-display-update))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
-  "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"
-  "*BUFFER LIST*" "*Help*" "*Compile-Log*" "*DONE*")
-  "*Reagexps matches buffer names always included tabs.")
-
-;; (setq tabbar-buffer-list-function 'tabbar-buffer-list) ;; default
-;; (setq tabbar-buffer-list-function 'buffer-lawlist-function)
-(defun buffer-lawlist-function ()
-  (let* ((hides (list ?\ ?\*))
-  (re (regexp-opt tabbar+displayed-buffers))
-  (cur-buf (current-buffer))
-  (tabs (delq nil
-  (mapcar (lambda (buf)
-  (let ((name (buffer-name buf)))
-  (when (or 
-    (string-match "^*WL:Message*" name)
-    (string-match "*~/.0.data/.** output*" name)
-    (string-match re name)
-    (not (memq (aref name 0) hides)))
-  buf)))
-  (buffer-list)))))
-  (if (memq cur-buf tabs)
-  tabs
-  (cons cur-buf tabs))))
-
-(defun tabbar-buffer-groups ()
-  (list
-    (cond
-      ((or (get-buffer-process (current-buffer))
-        (tabbar-buffer-mode-derived-p
-         major-mode '(comint-mode compilation-mode)))
-        "system")
-      ((member (buffer-name)
-        '("*Completions*" "*BBDB*" "*scratch*" "*Messages*" "*bbdb*" "*Org-toodledo-log*" "*Calendar*"
-        "*Buffer List*" "*BUFFER LIST*" "*Help*"))
-        "system")
-      ((eq major-mode '(run-latexmk dired-mode help-mode apropos-mode Info-mode Man-mode)) "system")
-      ((eq major-mode 'org-mode) "org")
-      ((member (buffer-name) '("*TODO*" "*DONE*" "*Org Agenda*")) "org")
-      ((member (buffer-name) '("Folder" "Summary" "Email")) "wanderlust")
-      ((memq major-mode
-        '(wl-summary-mode wl-original-message-mode wl-draft-mode mime-view-mode wl-message-mode wl-folder-mode
-        rail-mode rmail-edit-mode vm-summary-mode vm-mode mail-mode mh-letter-mode mh-show-mode mh-folder-mode
-        gnus-summary-mode message-mode gnus-group-mode gnus-article-mode score-mode gnus-browse-killed-mode))
-        "wanderlust")
-      ((memq major-mode '(text-mode latex-mode emacs-lisp-mode)) "main")
-      (t "miscellaneous") )))
-
-(defun refresh-frames-buffers ()
-(interactive)
-  (dolist (frame (frame-list))
-    (switch-to-frame (frame-parameter frame 'name) )
-    (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
-      (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))) ))
-
-(defun lawlist-tabbar-cycle (&optional backward type)
-  (let* ((tabset (tabbar-current-tabset t))
-         (ttabset (tabbar-get-tabsets-tabset))
-         (cycle (if (and (eq tabbar-cycle-scope 'groups)
-                         (not (cdr (tabbar-tabs ttabset))))
-                    'tabs
-                  tabbar-cycle-scope))
-         selected tab)
-    (when tabset
-      (setq selected (tabbar-selected-tab tabset))
-      (cond
-       ((eq cycle 'tabs)
-        (setq tab (tabbar-tab-next tabset selected backward))
-        (unless tab
-          (setq tabset (tabbar-tabs tabset)
-                tab (car (if backward (last tabset) tabset)))) )
-       ((eq cycle 'groups)
-        (setq tab (tabbar-tab-next ttabset selected backward))
-        (unless tab
-          (setq tabset (tabbar-tabs ttabset)
-                tab (car (if backward (last tabset) tabset)))) )
-       (t
-        (setq tab (tabbar-tab-next tabset selected backward))
-        (unless tab
-          (setq tab (tabbar-tab-next ttabset selected backward))
-          (unless tab
-            (setq tabset (tabbar-tabs ttabset)
-                  tab (car (if backward (last tabset) tabset))))
-          (setq tabset (tabbar-tabs (tabbar-tab-tabset tab))
-                tab (car (if backward (last tabset) tabset)))) ))
-       (display-buffer (get-buffer (car tab))))))
-
-(defun lawlist-tabbar-forward-group ()
-  "Go to selected tab in the next available group."
-  (interactive)
-  (let ((tabbar-cycle-scope 'groups))
-    (lawlist-tabbar-cycle)))
-
-(defun lawlist-tabbar-backward-group ()
-  "Go to selected tab in the previous available group."
-  (interactive)
-  (let ((tabbar-cycle-scope 'groups))
-    (lawlist-tabbar-cycle t)))
-
-(defvar tab-group nil)
-(defun get-group (group-name)
-  "Jump to a specific tabbar group."
-  (unless (and (featurep 'tabbar) tabbar-mode)
-    (error "Error: tabbar-mode not turned on."))
-  (let* ( (groups (mapcar #'(lambda (group)
-      (format "%s" (cdr group))) (tabbar-tabs (tabbar-get-tabsets-tabset)))))
-    (mapc #'(lambda (group)
-              (when (string= group-name (format "%s" (cdr group)))
-              (setq tab-group group) ))
-      (tabbar-tabs (tabbar-get-tabsets-tabset)) )
-    (if (not (equal (format "%s" (car tab-group)) "#<killed buffer>") )
-      (progn
-        (switch-to-buffer (car tab-group)) )
-      ;; else
-      (message "(car tab-group):  %s" (car tab-group))
-      (and
-        (eq header-line-format tabbar-header-line-format)
-        (eq tabbar-current-tabset-function 'tabbar-buffer-tabs)
-        (eq (current-buffer) (window-buffer (selected-window)))
-        (let ((bl (tabbar-tab-values (tabbar-current-tabset)))
-              (b  (current-buffer))
-              found sibling)
-        (while (and bl (not found))
-          (if (eq b (car bl))
-            (setq found t)
-              (setq sibling (car bl)))
-          (setq bl (cdr bl)))
-          (when (and (setq sibling (or (car bl) sibling))
-                (buffer-live-p sibling))
-            (save-current-buffer (switch-to-buffer sibling))
-            (message "\"%s\" moved to the front of the buffer-list." sibling))) ))))
-
-(defun tabbar-buffer-show-groups-toggle-switch ()
-  (interactive)
-  (if (and tabbar-mode tabbar--buffer-show-groups)
-      (tabbar-buffer-show-groups nil)
-    (tabbar-buffer-show-groups t) )  )
-
-(defun ido-tab ()
-  "Jump to a buffer in current tabbar group."
-  (interactive)
-  (unless (and (featurep 'tabbar) tabbar-mode)
-    (error "Error: tabbar-mode not turned on."))
-  (let* ( ;; Swaps the current buffer name with the next one along.
-         (visible-buffers (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab)))
-                                  (tabbar-tabs (tabbar-current-tabset t))))
-         (buffer-name (ido-completing-read "Buffer: " visible-buffers))
-         window-of-buffer)
-    (if (not (member buffer-name visible-buffers))
-        (error "'%s' does not have a visible window" buffer-name)
-      (switch-to-buffer buffer-name))))
-
-(defun ido-lawlist ()
-  "Switch buffer, within buffers associated with current frame (`lawlist-buffer-list')
-  Other buffers are excluded."
-  (interactive)
-    (let* ( (buffers (mapcar 'buffer-name (lawlist-buffer-list (selected-frame))))
-              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
-              (target (ido-completing-read "Buffer: " buffers-rotated)) )
-        (switch-to-buffer target)))
-
-(defun ido-group ()
-  "Jump to a tabbar group."
-  (interactive)
-  (let* ( (groups (mapcar #'(lambda (group)
-                              (format "%s" (cdr group)))
-                          (tabbar-tabs (tabbar-get-tabsets-tabset))))
-          (group-name (ido-completing-read "Groups: " groups)) )
-    (mapc #'(lambda (group)
-              (when (string= group-name (format "%s" (cdr group)))
-                  (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
-                  (switch-to-buffer (car group)) ))
-          (tabbar-tabs (tabbar-get-tabsets-tabset)))))
-
-(defun ido-frame ()
-  (interactive)
-  (setq frame-to (ido-completing-read "Select Frame:  "
-    (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))))
-  (setq frame-from (frame-parameter nil 'name))
-  (let ((frames (frame-list)))
-    (catch 'break
-      (while frames
-        (let ((frame (car frames)))
-          (if (equal (frame-parameter frame 'name) frame-to)
-            (throw 'break 
-              (progn
-                (select-frame-set-input-focus frame)
-                (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)
-              )
-            )
-            (setq frames (cdr frames))))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun tabbar-info ()
-"Diagnostic tabbar data."
-(interactive)
-  (message "\n---------------------- tabbar-info ---------------------")
-
-  (message "\n(frame-parameter (selected-frame) 'buffer-list):\n  %s"
-    (frame-parameter (selected-frame) 'buffer-list) )
-
-  (message "\n(buffer-list):\n  %s" (buffer-list) )
-
-  (message "\n(frame-parameter (selected-frame) 'buried-buffer-list):\n  %s"
-    (frame-parameter (selected-frame) 'buried-buffer-list) )
-
-  (message "\n(mapcar 'buffer-name (lawlist-buffer-list (selected-frame))):\n  %s"
-    (mapcar 'buffer-name (lawlist-buffer-list (selected-frame))) )
-
-  (message "\n(frame-parameter (selected-frame) 'lawlist-buffer-list):\n  %s"
-    (frame-parameter (selected-frame) 'lawlist-buffer-list) )
-
-  (message "\n(tabbar-selected-tab (tabbar-current-tabset t)):\n  %s"
-    (tabbar-selected-tab (tabbar-current-tabset t)) )
-
-  (message "\n(tabbar-tabs (tabbar-current-tabset t)):\n  %s"
-    (tabbar-tabs (tabbar-current-tabset t)) )
-
-  (message "\n(tabbar-current-tabset t):\n  %s"
-    (tabbar-current-tabset t) )
-
-  (message "\n(frame-parameter nil 'name):\n  %s"
-    (frame-parameter nil 'name) )
-
-  (message "\n(mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)):\n  %s"
-    (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
-
-  (message "\n(buffer-name):\n  %s" (buffer-name) )
-
-  (message "\n(mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))):\n  %s"
-    (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))) )
-
-  (message "\n(cdr (tabbar-buffer-list)):\n  %s"
-    (cdr (tabbar-buffer-list)) )
-  
-;; (message "\nAll Groups:\n  %s" all-groups)
-
-  (message "\n(tabbar-tabs (tabbar-get-tabsets-tabset)):\n  %s"
-    (tabbar-tabs (tabbar-get-tabsets-tabset)))
-
-  (message "\n(cdr (tabbar-tabs (tabbar-get-tabsets-tabset))):\n  %s"
-    (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))) )
-
-  (message "\n(car (tabbar-tabs (tabbar-get-tabsets-tabset))):\n  %s"
-    (car (tabbar-tabs (tabbar-get-tabsets-tabset))) )
-
-  (message "\n(buffer-file-name):  %s" (buffer-file-name) )
-
-  (message "-------------------------------------------------------- \n")
-  (if (get-buffer "*Messages*")
-      (display-buffer "*Messages*")
-    (display-buffer (get-buffer-create "*Messages*")))
-  (other-window 1)
-  (scroll-down 25) )
-
-(defun print-frame-info ()
- (interactive)
-  (message "%s"
-    (mapcar
-      (lambda (frame) "print frame"
-        (reduce 'concat
-          (mapcar (lambda (s) (format "%s" s))
-            (list
-            "TITLE=" (frame-parameter frame 'title) "\n"
-            "   NAME=" (frame-parameter frame 'name) "\n"
-            "   explicit-name=" (frame-parameter frame 'explicit-name) "\n"
-            "   display=" (frame-parameter frame 'display) "\n"
-            "   frame-height X frame-width=" (frame-height frame) "x" (frame-width frame) "\n"
-            "   frame-pixel-height X frame-pixel-width=" (frame-pixel-height frame) "x" (frame-pixel-width frame) "\n"
-            "   visibility=" (frame-parameter frame 'visibility) "\n"
-            )
-          )
-        )
-      )
-    (frame-list)
-    )
-  )
-)
+  (tabbar-display-update))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
