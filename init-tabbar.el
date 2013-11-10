@@ -1,19 +1,5 @@
 ;; init-tabbar.el
 
-;; Requires a current version of Emacs Trunk (24.3.50 (9.0)) and
-;; modified versions of frame-bufs and buff-menu (consolidated into one file)
-;; and a modified version of tabbar, all of which are contained within the lawlist
-;; repository:  https://github.com/lawlist/tabbar-lawlist
-
-;; The manual sorting of tabs requires installation of `dash` from `marmalade`.
-
-;; If using (desktop-save-mode 1), then also use (setq desktop-restore-frames nil)
-
-;; Place these three lines somewhere in the .emacs or init.el
-;; (require 'tabbar)
-;; (require 'init-frames)
-;; (require 'init-tabbar)
-
 ;; Authored (in part) by lawlist -- modifying various functions found at the following
 ;; links, and with the indirect help of many skilled programmers at the forums of
 ;; http://www.stackoverflow.com, and indirectly with the assistance of several skilled
@@ -27,16 +13,9 @@
 ;; http://www.emacswiki.org/emacs/frame-cmds.el
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; REFRESH TABBAR
-;; (tabbar-current-tabset 't)
-;; (tabbar-display-update)
-;; (sit-for 0)
-;;
-;; set current buffer -- switch to tab -- function must contain (&optional type)
-;; (setq wl-selected-message-buffer (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
-;; (tabbar-click-on-tab wl-selected-message-buffer type)
+;; Place these two (2) lines of code somewhere in the .emacs or init.el
+;; (require 'tabbar)
+;; (require 'init-tabbar)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HOOKS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -44,7 +23,6 @@
   (tabbar-mode t)
   (setq tabbar-use-images nil)
   (setq tabbar-cycle-scope 'tabs)
-  (setq frame-bufs-mode t)
   (setq tabbar-buffer-groups-function (lambda () (list
     (cond
       ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs")
@@ -286,15 +264,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REGEXP FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun regexp-match-p (regexps string)
-"Before the lisp function, define the variable like this:\n
-(defvar example-regexp nil
-  \"Regexps matching `buffer-name buffer` for frame name `SYSTEM`.\")
-    (setq example-regexp '(\"\\(\\*foo\\*\\|\\*bar\\*\\)\"))
-\nWithin the lisp function, use something like this:\n
-(regexp-match-p example-regexp (buffer-name buffer))
-\nOr, this:\n
-(regexp-match-p example-regexp buffer-filename)"
-  ;; (setq case-fold-search nil) ;; take case into consideration
   (catch 'matched
     (dolist (regexp regexps)
       (if (string-match regexp string)
@@ -337,6 +306,78 @@
               (throw 'break (select-frame-set-input-focus frame))
             (setq frames (cdr frames))))))))
 
+;; https://github.com/alpaker/Frame-Bufs
+(defun frame-bufs-buffer-list (frame)
+  ;; Remove dead buffers.
+  (set-frame-parameter frame 'frame-bufs-buffer-list
+    (delq nil (mapcar #'(lambda (x) (if (buffer-live-p x) x))
+      (frame-parameter frame 'frame-bufs-buffer-list))))
+  ;; Return the associated-buffer list.
+  (frame-parameter frame 'frame-bufs-buffer-list) )
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun frame-bufs-remove-buffer (buf frame)
+  "Remove BUF from FRAME's associated-buffer list."
+  (set-frame-parameter frame 'frame-bufs-buffer-list
+    (delq buf (frame-parameter frame 'frame-bufs-buffer-list))))
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun frame-bufs-add-buffer (buf frame)
+  "Add BUF to FRAME's associated-buffer list if not already present."
+  (unless (bufferp buf)
+    (signal 'wrong-type-argument (list 'bufferp buf)))
+  (let ((associated-bufs (frame-parameter frame 'frame-bufs-buffer-list)))
+    (unless (memq buf associated-bufs)
+      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs))))
+  (if (and (featurep 'tabbar) tabbar-mode)
+    (tabbar-display-update)))
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun associate-current-buffer ()
+(interactive)
+  (frame-bufs-add-buffer (get-buffer (current-buffer)) (selected-frame)))
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun disassociate-current-buffer (&optional buf frame)
+(interactive)
+  (unless buf (setq buf (current-buffer)))
+  (unless frame (setq frame (selected-frame)))
+  (frame-bufs-remove-buffer (current-buffer) (selected-frame))
+  (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
+    (set-window-buffer win (other-buffer buf)))
+  (if (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun lawlist-frame-bufs-reset ()
+  "Wipe the entire slate clean for the selected frame."
+(interactive)
+  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil))) 
+   (if (and (featurep 'tabbar) tabbar-mode)
+    (tabbar-display-update)))
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun frame-bufs-reset-frame (&optional frame)
+  "Reset FRAME's associated-buffer list.
+  Set list of buffers associated with FRAME to the list of all
+  buffers that have been selected on FRAME, and no others.  When
+  called with no argument, act on the selected frame."
+  (interactive)
+  (unless frame (setq frame (selected-frame)))
+  (set-frame-parameter frame 'frame-bufs-buffer-list
+     (append 
+       (frame-parameter frame 'buffer-list)
+       (frame-parameter frame 'buried-buffer-list)
+      '()) ) )
+
+;; https://github.com/alpaker/Frame-Bufs
+(defun frame-bufs-reset-all-frames ()
+  "Reset the associated-buffer list of all frames.
+  Call `frame-bufs-reset-frame' on all live frames."
+  (interactive)
+  (dolist (frame (frame-list))
+    (frame-bufs-reset-frame frame)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;; IF BUILT --with-ns, THEN ALSO USE ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defalias 'ns-find-file 'lawlist-ns-find-file)
@@ -367,49 +408,37 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  MISCELLANEOUS FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun ido-frame ()
-  (interactive)
-  (setq frame-to (ido-completing-read "Select Frame:  "
-    (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))))
-  (setq frame-from (frame-parameter nil 'name))
-  (let ((frames (frame-list)))
-    (catch 'break
-      (while frames
-        (let ((frame (car frames)))
-          (if (equal (frame-parameter frame 'name) frame-to)
-            (throw 'break 
-              (progn
-                (select-frame-set-input-focus frame)
-                (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)
-              )
-            )
-            (setq frames (cdr frames))))))))
+;; BUFFER MODIFICATION STATE INDICATOR
+(defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
+   (setq ad-return-value
+         (if (and (buffer-modified-p (tabbar-tab-value tab))
+                  (buffer-file-name (tabbar-tab-value tab)))
+             (concat " + " (concat ad-return-value " "))
+           (concat " " (concat ad-return-value " ")))))
+(defun ztl-modification-state-change ()
+   (tabbar-set-template tabbar-current-tabset nil)
+   (tabbar-display-update))
+(defun ztl-on-buffer-modification ()
+   (set-buffer-modified-p t)
+   (ztl-modification-state-change))
+(add-hook 'after-save-hook 'ztl-modification-state-change)
+(add-hook 'first-change-hook 'ztl-on-buffer-modification)
 
 (defun cycle-forward-frames-groups ()
-  "Cycle to next frame-bufs frame."
-(interactive)
-  (unless (and (featurep 'init-frames) frame-bufs-mode)
-    (error "Error: frame-bufs-mode must be active for this function to work."))
+  (interactive)
   (other-frame 1)
-  (if (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
-  ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
-  ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-  (if (get-buffer "nil")
-    (kill-buffer "nil")) )
+  (if (and 
+        (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
+        (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil)))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
 
 (defun cycle-backward-frames-groups ()
-  "Cycle to previous frame-bufs frame."
 (interactive)
-  (unless (and (featurep 'init-frames) frame-bufs-mode)
-    (error "Error: frame-bufs-mode must be active for this function to work."))
   (other-frame -1)
-  (if (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame))))))
-  ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
-  ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-  (if (get-buffer "nil")
-    (kill-buffer "nil")) )
+  (if (and 
+        (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
+        (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil)))
+    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
 
 (defun lawlist-exit-draft ()
   "Choices for directories and files."
@@ -454,119 +483,7 @@
       (kill-buffer "*scratch*")))
 (tabbar-display-update))
 
-(defun tabbar-buffer-show-groups-toggle-switch ()
-  (interactive)
-  (if (and tabbar-mode tabbar--buffer-show-groups)
-      (tabbar-buffer-show-groups nil)
-    (tabbar-buffer-show-groups t) )  )
-
-(defun ido-tab ()
-  "Jump to a buffer in current tabbar group."
-  (interactive)
-  (unless (and (featurep 'tabbar) tabbar-mode)
-    (error "Error: tabbar-mode not turned on."))
-  (let* ( ;; Swaps the current buffer name with the next one along.
-         (visible-buffers (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab)))
-                                  (tabbar-tabs (tabbar-current-tabset t))))
-         (buffer-name (ido-completing-read "Buffer: " visible-buffers))
-         window-of-buffer)
-    (if (not (member buffer-name visible-buffers))
-        (error "'%s' does not have a visible window" buffer-name)
-      (switch-to-buffer buffer-name))))
-
-(defun ido-frame-bufs ()
-  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
-  Other buffers are excluded."
-  (interactive)
-  (if (and (featurep 'init-frames) frame-bufs-mode)
-    (progn
-      (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
-              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
-              (target (ido-completing-read "Buffer: " buffers-rotated)) )
-        (switch-to-buffer target)))
-    (error "\"frame-bufs-mode\" must first be enabled in order to use this function.")))
-
-(defun ido-group ()
-  "Jump to a tabbar group."
-  (interactive)
-  (unless (and (and (featurep 'tabbar) tabbar-mode)
-              (not (and (featurep 'init-frames) frame-bufs-mode)))
-    (error "Either tabbar-mode is not active, or frame-bufs-mode is also active."))
-  (let* ( (groups (mapcar #'(lambda (group)
-                              (format "%s" (cdr group)))
-                          (tabbar-tabs (tabbar-get-tabsets-tabset))))
-          (group-name (ido-completing-read "Groups: " groups)) )
-    (mapc #'(lambda (group)
-              (when (string= group-name (format "%s" (cdr group)))
-                  (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
-                  (switch-to-buffer (car group)) ))
-          (tabbar-tabs (tabbar-get-tabsets-tabset)))))
-
-;; BUFFER MODIFICATION STATE INDICATOR
-(defadvice tabbar-buffer-tab-label (after fixup_tab_label_space_and_flag activate)
-   (setq ad-return-value
-         (if (and (buffer-modified-p (tabbar-tab-value tab))
-                  (buffer-file-name (tabbar-tab-value tab)))
-             (concat " + " (concat ad-return-value " "))
-           (concat " " (concat ad-return-value " ")))))
-(defun ztl-modification-state-change ()
-   (tabbar-set-template tabbar-current-tabset nil)
-   (tabbar-display-update))
-(defun ztl-on-buffer-modification ()
-   (set-buffer-modified-p t)
-   (ztl-modification-state-change))
-(add-hook 'after-save-hook 'ztl-modification-state-change)
-(add-hook 'first-change-hook 'ztl-on-buffer-modification)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SORTING TABS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; The manual sorting of tabs requires installation of `dash` from `marmalade`.
-
-(defun tabbar-sort-tab ()
-"Sort current tab group lexicographically"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset)))
-(if (and ctabset ctabs)
-(progn
-(set ctabset (sort ctabs (lambda (b1 b2)
-(string-lessp (buffer-name (car b1))
-(buffer-name (car b2))))))
-(put ctabset 'template nil)
-(tabbar-display-update)))))
-
-(defun tabbar-get-current-buffer-index ()
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset)))
-(length (--take-while (not (eq it ctab)) ctabs))))
- 
-(defun insert- (list-object index element)
-(append (-take index list-object) (list element) (-drop index list-object)))
- 
-(defun tabbar-move (direction)
-"Move current tab to (+ index DIRECTION)"
-(interactive)
-(let* ((ctabset (tabbar-current-tabset 't))
-(ctabs (tabbar-tabs ctabset))
-(ctab (tabbar-selected-tab ctabset))
-(index (tabbar-get-current-buffer-index))
-(others (--remove (eq it ctab) ctabs))
-(ins (mod (+ index direction (+ 1 (length others))) (+ 1 (length others)))))
-(set ctabset (insert- others ins ctab))
-(put ctabset 'template nil)
-(tabbar-display-update)))
- 
-(defun tabbar-move-right ()
-"Move current tab to right"
-(interactive)
-  (tabbar-move +1))
- 
-(defun tabbar-move-left ()
-"Move current tab to left"
-(interactive)
-  (tabbar-move -1))
-
-;;;;;;;;;;;;;;;;;;;;;;; (setq frame-bufs-mode nil)   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar tabbar+displayed-buffers '("*scratch*" "*Messages*" "*TODO*" "*Org Agenda*"
   "*BBDB*" "*bbdb*" "*Completions*" "*Org-toodledo-log*" "*Calendar*" "*Buffer List*"
@@ -625,11 +542,8 @@
     (progn
       (dolist (frame (frame-list))
         (switch-to-frame (frame-parameter frame 'name) )
-        (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))
-        ;;  NOTE:  The "nil" buffer is caused when there is no buffer assigned to
-        ;;  the frame-bufs-buffer-list -- i.e., result when it is empty.
-      (if (get-buffer "nil")
-        (kill-buffer "nil")) ))))
+        (if (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil))
+          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))) ))))
 
 (defun lawlist-tabbar-cycle (&optional backward type)
   (let* ((tabset (tabbar-current-tabset t))
@@ -708,58 +622,129 @@
             (save-current-buffer (switch-to-buffer sibling))
             (message "\"%s\" moved to the front of the buffer-list." sibling))) ))))
 
+(defun tabbar-buffer-show-groups-toggle-switch ()
+  (interactive)
+  (if (and tabbar-mode tabbar--buffer-show-groups)
+      (tabbar-buffer-show-groups nil)
+    (tabbar-buffer-show-groups t) )  )
+
+(defun ido-tab ()
+  "Jump to a buffer in current tabbar group."
+  (interactive)
+  (unless (and (featurep 'tabbar) tabbar-mode)
+    (error "Error: tabbar-mode not turned on."))
+  (let* ( ;; Swaps the current buffer name with the next one along.
+         (visible-buffers (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab)))
+                                  (tabbar-tabs (tabbar-current-tabset t))))
+         (buffer-name (ido-completing-read "Buffer: " visible-buffers))
+         window-of-buffer)
+    (if (not (member buffer-name visible-buffers))
+        (error "'%s' does not have a visible window" buffer-name)
+      (switch-to-buffer buffer-name))))
+
+(defun ido-frame-bufs ()
+  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
+  Other buffers are excluded."
+  (interactive)
+    (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
+              (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
+              (target (ido-completing-read "Buffer: " buffers-rotated)) )
+        (switch-to-buffer target)))
+
+(defun ido-group ()
+  "Jump to a tabbar group."
+  (interactive)
+  (let* ( (groups (mapcar #'(lambda (group)
+                              (format "%s" (cdr group)))
+                          (tabbar-tabs (tabbar-get-tabsets-tabset))))
+          (group-name (ido-completing-read "Groups: " groups)) )
+    (mapc #'(lambda (group)
+              (when (string= group-name (format "%s" (cdr group)))
+                  (message "Switch to group '%s', current buffer: %s" (cdr group) (car group))
+                  (switch-to-buffer (car group)) ))
+          (tabbar-tabs (tabbar-get-tabsets-tabset)))))
+
+(defun ido-frame ()
+  (interactive)
+  (setq frame-to (ido-completing-read "Select Frame:  "
+    (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list))))
+  (setq frame-from (frame-parameter nil 'name))
+  (let ((frames (frame-list)))
+    (catch 'break
+      (while frames
+        (let ((frame (car frames)))
+          (if (equal (frame-parameter frame 'name) frame-to)
+            (throw 'break 
+              (progn
+                (select-frame-set-input-focus frame)
+                (message "Switched -- From: \"%s\"  To: \"%s\"." frame-from frame-to)
+              )
+            )
+            (setq frames (cdr frames))))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DIAGNOSTIC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun tabbar-info ()
 "Diagnostic tabbar data."
 (interactive)
-  (setq frame-bufs-car (car (frame-bufs-buffer-list (selected-frame))))
-  (setq frame-bufs-cdr (cdr (frame-bufs-buffer-list (selected-frame))))
-  (setq frame-bufs-associated-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
-  (setq frame-bufs-full-list-frame (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame) t))) ;; hides system buffers
-  (setq tab-focus (tabbar-selected-tab (tabbar-current-tabset t)))
-  (setq tabs-group-focus (tabbar-tabs (tabbar-current-tabset t)))
-  (setq group-focus (tabbar-current-tabset t))
-  (setq frame-focus (frame-parameter nil 'name))
-  (setq all-frames (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
-  (setq buffer-focus (buffer-name))
-  (setq buffers-group-focus (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))))
-  (setq all-buffers (cdr (tabbar-buffer-list)))
-;;  (setq all-groups (mapcar #'(lambda (group) (format "%s" (cdr group))) (tabbar-tabs tabbar-tabsets-tabset)))
-  (setq all-tabs-per-group-focus (tabbar-tabs (tabbar-get-tabsets-tabset)))
-  (setq cdr-all-tabs-per-group-focus (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))))
-  (setq car-all-tabs-per-group-focus (car (tabbar-tabs (tabbar-get-tabsets-tabset))))
-  (setq filename buffer-file-name)
+  (message "\n---------------------- tabbar-info ---------------------")
+
+  (message "\n(frame-parameter (selected-frame) 'buffer-list):\n  %s"
+    (frame-parameter (selected-frame) 'buffer-list) )
+
+  (message "\n(buffer-list):\n  %s" (buffer-list) )
+
+  (message "\n(frame-parameter (selected-frame) 'buried-buffer-list):\n  %s"
+    (frame-parameter (selected-frame) 'buried-buffer-list) )
+
+  (message "\n(mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))):\n  %s"
+    (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))) )
+
+  (message "\n(frame-parameter (selected-frame) 'frame-bufs-buffer-list):\n  %s"
+    (frame-parameter (selected-frame) 'frame-bufs-buffer-list) )
+
+  (message "\n(tabbar-selected-tab (tabbar-current-tabset t)):\n  %s"
+    (tabbar-selected-tab (tabbar-current-tabset t)) )
+
+  (message "\n(tabbar-tabs (tabbar-current-tabset t)):\n  %s"
+    (tabbar-tabs (tabbar-current-tabset t)) )
+
+  (message "\n(tabbar-current-tabset t):\n  %s"
+    (tabbar-current-tabset t) )
+
+  (message "\n(frame-parameter nil 'name):\n  %s"
+    (frame-parameter nil 'name) )
+
+  (message "\n(mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)):\n  %s"
+    (mapcar (lambda (frame) (frame-parameter frame 'name)) (frame-list)) )
+
+  (message "\n(buffer-name):\n  %s" (buffer-name) )
+
+  (message "\n(mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))):\n  %s"
+    (mapcar (lambda (tab) (buffer-name (tabbar-tab-value tab))) (tabbar-tabs (tabbar-current-tabset t))) )
+
+  (message "\n(cdr (tabbar-buffer-list)):\n  %s"
+    (cdr (tabbar-buffer-list)) )
+  
+;; (message "\nAll Groups:\n  %s" all-groups)
+
+  (message "\n(tabbar-tabs (tabbar-get-tabsets-tabset)):\n  %s"
+    (tabbar-tabs (tabbar-get-tabsets-tabset)))
+
+  (message "\n(cdr (tabbar-tabs (tabbar-get-tabsets-tabset))):\n  %s"
+    (cdr (tabbar-tabs (tabbar-get-tabsets-tabset))) )
+
+  (message "\n(car (tabbar-tabs (tabbar-get-tabsets-tabset))):\n  %s"
+    (car (tabbar-tabs (tabbar-get-tabsets-tabset))) )
+
+  (message "\n(buffer-file-name):  %s" (buffer-file-name) )
+
+  (message "-------------------------------------------------------- \n")
   (if (get-buffer "*Messages*")
       (display-buffer "*Messages*")
     (display-buffer (get-buffer-create "*Messages*")))
-  (if (not (equal (buffer-name) "*BUFFER LIST*"))
-    (other-window 1))
-  (message "\n---------------------- tabbar-info --------------------- \n")
-  (message "frame-bufs-car:  %s \n" frame-bufs-car)
-  (message "frame-bufs-cdr:  %s \n" frame-bufs-cdr)
-  (message "Selected Frame Buffer List:  %s \n" (frame-parameter (selected-frame) 'buffer-list))
-  (message "Buffer List -- all:  %s \n" (buffer-list))
-  (message "Selected Frame Buried Buffer List:  %s \n" (frame-parameter (selected-frame) 'buried-buffer-list))
-  (message "Frame-Bufs Associated Frame:  %s \n" frame-bufs-associated-frame)
-  (message "Frame-Bufs Full List Frame:  %s \n" frame-bufs-full-list-frame)
-  (message "Tab - Focus:  %s \n" tab-focus)
-  (message "Tabs Group Focus:  %s \n" tabs-group-focus)
-  (message "Group - Focus:  %s \n" group-focus)
-  (message "Frame - Focus:  %s \n" frame-focus)
-  (message "All Frames:  %s \n" all-frames)
-  (message "Buffer - Focus:  %s \n" buffer-focus)
-  (message "Buffers Group Focus:  %s \n" buffers-group-focus)
-  (message "All Buffers:  %s \n" all-buffers)
-  ;; (message "All Groups:  %s \n" all-groups)
-  (message "All Tabs (Per Group) -- Focus:  %s \n" all-tabs-per-group-focus)
-  (message "\"cdr\" of \"All Tabs (Per Group) -- Focus\":  %s \n" cdr-all-tabs-per-group-focus)
-  (message "\"car\" of \"All Tabs (Per Group) -- Focus\":  %s \n" car-all-tabs-per-group-focus)
-  (message "%s" filename)
-  (message "-------------------------------------------------------- \n")
-  (message "\"M-x delete-window\" to close this window.")
-  (goto-char (point-max))
-  (scroll-down 20))
+  (other-window 1)
+  (scroll-down 25) )
 
 (defun print-frame-info ()
  (interactive)
