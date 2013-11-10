@@ -463,7 +463,7 @@
       (tabbar-forward)
       (lawlist-exit-draft)
       (switch-to-buffer previous-buffer-name)
-      (if(get-buffer current-buffer-name)
+      (if (get-buffer current-buffer-name)
         (kill-buffer current-buffer-name)))
     (kill-buffer current-buffer-name))
   (if (get-buffer-window "*Calendar*" (selected-frame))
