@@ -12,6 +12,7 @@
 ;; https://github.com/alpaker/Frame-Bufs
 ;; http://www.emacswiki.org/emacs/frame-cmds.el
 ;; http://www.emacswiki.org/emacs/frame-fns.el
+;; https://github.com/kentaro/auto-save-buffers-enhanced
 
 ;; Place these two (2) lines of code somewhere in the .emacs or init.el
 ;; (require 'tabbar)
