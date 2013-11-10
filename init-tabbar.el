@@ -25,8 +25,8 @@
   (setq tabbar-cycle-scope 'tabs)
   (setq tabbar-buffer-groups-function (lambda () (list
     (cond
-      ((memq (current-buffer) (lawlist-buffer-list (selected-frame))) "frame-bufs")
-      (t "non-associated") )))) ))
+      ((memq (current-buffer) (lawlist-buffer-list (selected-frame))) "lawlist")
+      (t "unassigned") )))) ))
 
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -166,7 +166,7 @@
           (progn
             (lawlist-make-frame)
             (set-frame-name "WANDERLUST"))) )
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 1 -- either file-visiting or no-file buffers
@@ -185,7 +185,7 @@
           (progn
             (lawlist-make-frame)
             (set-frame-name "ORG"))) )
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 2 -- either file-visiting or no-file buffers
@@ -204,7 +204,7 @@
           (progn
             (lawlist-make-frame)
             (set-frame-name "MAIN"))) )
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 3 -- either file-visiting or no-file buffers
@@ -223,13 +223,13 @@
           (progn
             (lawlist-make-frame)
             (set-frame-name "SYSTEM"))) )
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 4
     ;; display buffer in the existing frame, without other windows
     ((regexp-match-p special-buffer-regexp (buffer-name buffer))
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 5
@@ -254,7 +254,7 @@
           (progn
             (lawlist-make-frame)
             (set-frame-name "MISCELLANEOUS"))))
-      (frame-bufs-add-buffer (get-buffer buffer) (selected-frame))
+      (lawlist-add-buffer (get-buffer buffer) (selected-frame))
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 6
@@ -322,7 +322,7 @@
     (delq buf (frame-parameter frame 'lawlist-buffer-list))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun frame-bufs-add-buffer (buf frame)
+(defun lawlist-add-buffer (buf frame)
   "Add BUF to FRAME's associated-buffer list if not already present."
   (unless (bufferp buf)
     (signal 'wrong-type-argument (list 'bufferp buf)))
@@ -335,7 +335,7 @@
 ;; https://github.com/alpaker/Frame-Bufs
 (defun associate-current-buffer ()
 (interactive)
-  (frame-bufs-add-buffer (get-buffer (current-buffer)) (selected-frame)))
+  (lawlist-add-buffer (get-buffer (current-buffer)) (selected-frame)))
 
 ;; https://github.com/alpaker/Frame-Bufs
 (defun disassociate-current-buffer (&optional buf frame)
@@ -357,7 +357,7 @@
     (tabbar-display-update)))
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun frame-bufs-reset-frame (&optional frame)
+(defun lawlist-reset-frame (&optional frame)
   "Reset FRAME's associated-buffer list.
   Set list of buffers associated with FRAME to the list of all
   buffers that have been selected on FRAME, and no others.  When
@@ -371,12 +371,12 @@
       '()) ) )
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun frame-bufs-reset-all-frames ()
+(defun lawlist-reset-all-frames ()
   "Reset the associated-buffer list of all frames.
-  Call `frame-bufs-reset-frame' on all live frames."
+  Call `lawlist-reset-frame' on all live frames."
   (interactive)
   (dolist (frame (frame-list))
-    (frame-bufs-reset-frame frame)))
+    (lawlist-reset-frame frame)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; IF BUILT --with-ns, THEN ALSO USE ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -535,15 +535,10 @@
 
 (defun refresh-frames-buffers ()
 (interactive)
-  (if (not (and (featurep 'init-frames) frame-bufs-mode))
-      (dolist (frame (frame-list))
-        (when frame (lawlist-tabbar-forward-group))))
-  (if (and (featurep 'init-frames) frame-bufs-mode)
-    (progn
-      (dolist (frame (frame-list))
-        (switch-to-frame (frame-parameter frame 'name) )
-        (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
-          (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))) ))))
+  (dolist (frame (frame-list))
+    (switch-to-frame (frame-parameter frame 'name) )
+    (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
+      (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))) ))
 
 (defun lawlist-tabbar-cycle (&optional backward type)
   (let* ((tabset (tabbar-current-tabset t))
@@ -642,7 +637,7 @@
         (error "'%s' does not have a visible window" buffer-name)
       (switch-to-buffer buffer-name))))
 
-(defun ido-frame-bufs ()
+(defun ido-lawlist ()
   "Switch buffer, within buffers associated with current frame (`lawlist-buffer-list')
   Other buffers are excluded."
   (interactive)
