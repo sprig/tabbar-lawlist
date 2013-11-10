@@ -25,7 +25,7 @@
   (setq tabbar-cycle-scope 'tabs)
   (setq tabbar-buffer-groups-function (lambda () (list
     (cond
-      ((memq (current-buffer) (frame-bufs-buffer-list (selected-frame))) "frame-bufs")
+      ((memq (current-buffer) (lawlist-buffer-list (selected-frame))) "frame-bufs")
       (t "non-associated") )))) ))
 
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -102,7 +102,7 @@
     ((eq system-type 'windows-nt)
       (switch-to-frame "emacs@PARALLELS")
       (w32-send-sys-command 61488)))
-  (lawlist-frame-bufs-reset))
+  (lawlist-buffer-list-reset))
 
 (defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
@@ -160,7 +160,7 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "WANDERLUST")
-              (lawlist-frame-bufs-reset))))))
+              (lawlist-buffer-list-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "WANDERLUST"))
           (progn
@@ -179,7 +179,7 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "ORG")
-              (lawlist-frame-bufs-reset))))))
+              (lawlist-buffer-list-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "ORG"))
           (progn
@@ -198,7 +198,7 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "MAIN")
-              (lawlist-frame-bufs-reset))))))
+              (lawlist-buffer-list-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "MAIN"))
           (progn
@@ -217,7 +217,7 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "SYSTEM")
-              (lawlist-frame-bufs-reset))))))
+              (lawlist-buffer-list-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "SYSTEM"))
           (progn
@@ -248,7 +248,7 @@
             (throw 'break (progn
               (switch-to-frame (frame-parameter frame 'name))
               (set-frame-name "MISCELLANEOUS")
-              (lawlist-frame-bufs-reset))))))
+              (lawlist-buffer-list-reset))))))
         ;; If dolist found no unnamed frame, then create / name it.
         (if (not (get-frame "MISCELLANEOUS"))
           (progn
@@ -307,28 +307,28 @@
             (setq frames (cdr frames))))))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun frame-bufs-buffer-list (frame)
+(defun lawlist-buffer-list (frame)
   ;; Remove dead buffers.
-  (set-frame-parameter frame 'frame-bufs-buffer-list
+  (set-frame-parameter frame 'lawlist-buffer-list
     (delq nil (mapcar #'(lambda (x) (if (buffer-live-p x) x))
-      (frame-parameter frame 'frame-bufs-buffer-list))))
+      (frame-parameter frame 'lawlist-buffer-list))))
   ;; Return the associated-buffer list.
-  (frame-parameter frame 'frame-bufs-buffer-list) )
+  (frame-parameter frame 'lawlist-buffer-list) )
 
 ;; https://github.com/alpaker/Frame-Bufs
 (defun frame-bufs-remove-buffer (buf frame)
   "Remove BUF from FRAME's associated-buffer list."
-  (set-frame-parameter frame 'frame-bufs-buffer-list
-    (delq buf (frame-parameter frame 'frame-bufs-buffer-list))))
+  (set-frame-parameter frame 'lawlist-buffer-list
+    (delq buf (frame-parameter frame 'lawlist-buffer-list))))
 
 ;; https://github.com/alpaker/Frame-Bufs
 (defun frame-bufs-add-buffer (buf frame)
   "Add BUF to FRAME's associated-buffer list if not already present."
   (unless (bufferp buf)
     (signal 'wrong-type-argument (list 'bufferp buf)))
-  (let ((associated-bufs (frame-parameter frame 'frame-bufs-buffer-list)))
+  (let ((associated-bufs (frame-parameter frame 'lawlist-buffer-list)))
     (unless (memq buf associated-bufs)
-      (set-frame-parameter frame 'frame-bufs-buffer-list (cons buf associated-bufs))))
+      (set-frame-parameter frame 'lawlist-buffer-list (cons buf associated-bufs))))
   (if (and (featurep 'tabbar) tabbar-mode)
     (tabbar-display-update)))
 
@@ -345,14 +345,14 @@
   (frame-bufs-remove-buffer (current-buffer) (selected-frame))
   (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
     (set-window-buffer win (other-buffer buf)))
-  (if (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
+  (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
+    (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun lawlist-frame-bufs-reset ()
+(defun lawlist-buffer-list-reset ()
   "Wipe the entire slate clean for the selected frame."
 (interactive)
-  (modify-frame-parameters (selected-frame) (list (cons 'frame-bufs-buffer-list nil))) 
+  (modify-frame-parameters (selected-frame) (list (cons 'lawlist-buffer-list nil))) 
    (if (and (featurep 'tabbar) tabbar-mode)
     (tabbar-display-update)))
 
@@ -364,7 +364,7 @@
   called with no argument, act on the selected frame."
   (interactive)
   (unless frame (setq frame (selected-frame)))
-  (set-frame-parameter frame 'frame-bufs-buffer-list
+  (set-frame-parameter frame 'lawlist-buffer-list
      (append 
        (frame-parameter frame 'buffer-list)
        (frame-parameter frame 'buried-buffer-list)
@@ -428,17 +428,17 @@
   (interactive)
   (other-frame 1)
   (if (and 
-        (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
-        (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil)))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
+        (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
+    (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 (defun cycle-backward-frames-groups ()
 (interactive)
   (other-frame -1)
   (if (and 
-        (not (equal (buffer-name) (car (frame-bufs-buffer-list (selected-frame)))))
-        (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil)))
-    (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))))
+        (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
+    (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 (defun lawlist-exit-draft ()
   "Choices for directories and files."
@@ -542,8 +542,8 @@
     (progn
       (dolist (frame (frame-list))
         (switch-to-frame (frame-parameter frame 'name) )
-        (if (not (equal (car (frame-bufs-buffer-list (selected-frame))) nil))
-          (switch-to-buffer (format "%s" (car (frame-bufs-buffer-list (selected-frame)))))) ))))
+        (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
+          (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))) ))))
 
 (defun lawlist-tabbar-cycle (&optional backward type)
   (let* ((tabset (tabbar-current-tabset t))
@@ -643,10 +643,10 @@
       (switch-to-buffer buffer-name))))
 
 (defun ido-frame-bufs ()
-  "Switch buffer, within buffers associated with current frame (`frame-bufs-buffer-list')
+  "Switch buffer, within buffers associated with current frame (`lawlist-buffer-list')
   Other buffers are excluded."
   (interactive)
-    (let* ( (buffers (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))))
+    (let* ( (buffers (mapcar 'buffer-name (lawlist-buffer-list (selected-frame))))
               (buffers-rotated (append (cdr buffers) (cons (car buffers) nil)))
               (target (ido-completing-read "Buffer: " buffers-rotated)) )
         (switch-to-buffer target)))
@@ -697,11 +697,11 @@
   (message "\n(frame-parameter (selected-frame) 'buried-buffer-list):\n  %s"
     (frame-parameter (selected-frame) 'buried-buffer-list) )
 
-  (message "\n(mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))):\n  %s"
-    (mapcar 'buffer-name (frame-bufs-buffer-list (selected-frame))) )
+  (message "\n(mapcar 'buffer-name (lawlist-buffer-list (selected-frame))):\n  %s"
+    (mapcar 'buffer-name (lawlist-buffer-list (selected-frame))) )
 
-  (message "\n(frame-parameter (selected-frame) 'frame-bufs-buffer-list):\n  %s"
-    (frame-parameter (selected-frame) 'frame-bufs-buffer-list) )
+  (message "\n(frame-parameter (selected-frame) 'lawlist-buffer-list):\n  %s"
+    (frame-parameter (selected-frame) 'lawlist-buffer-list) )
 
   (message "\n(tabbar-selected-tab (tabbar-current-tabset t)):\n  %s"
     (tabbar-selected-tab (tabbar-current-tabset t)) )
