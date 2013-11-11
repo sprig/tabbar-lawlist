@@ -316,7 +316,7 @@
   (frame-parameter frame 'lawlist-buffer-list) )
 
 ;; https://github.com/alpaker/Frame-Bufs
-(defun frame-bufs-remove-buffer (buf frame)
+(defun lawlist-remove-buffer (buf frame)
   "Remove BUF from FRAME's associated-buffer list."
   (set-frame-parameter frame 'lawlist-buffer-list
     (delq buf (frame-parameter frame 'lawlist-buffer-list))))
@@ -342,7 +342,7 @@
 (interactive)
   (unless buf (setq buf (current-buffer)))
   (unless frame (setq frame (selected-frame)))
-  (frame-bufs-remove-buffer (current-buffer) (selected-frame))
+  (lawlist-remove-buffer (current-buffer) (selected-frame))
   (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
     (set-window-buffer win (other-buffer buf)))
   (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
