@@ -7,6 +7,7 @@
 ;; http://www.emacswiki.org/emacs/TabBarMode
 ;; https://github.com/bamanzi/dotemacs-full/blob/master/init.d/25-tabbar.el
 ;; https://gist.github.com/Johniel/4324127
+;; http://stackoverflow.com/questions/18346785/how-to-intercept-a-file-before-it-opens-and-decide-which-frame
 ;; http://stackoverflow.com/questions/17823448/if-frame-named-xyz-exists-then-switch-to-that-frame
 ;; http://blog.andy.glew.ca/2012_10_02_archive.html
 ;; https://github.com/alpaker/Frame-Bufs
