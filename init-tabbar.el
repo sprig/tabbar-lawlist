@@ -356,28 +356,6 @@
    (if (and (featurep 'tabbar) tabbar-mode)
     (tabbar-display-update)))
 
-;; https://github.com/alpaker/Frame-Bufs
-(defun lawlist-reset-frame (&optional frame)
-  "Reset FRAME's associated-buffer list.
-  Set list of buffers associated with FRAME to the list of all
-  buffers that have been selected on FRAME, and no others.  When
-  called with no argument, act on the selected frame."
-  (interactive)
-  (unless frame (setq frame (selected-frame)))
-  (set-frame-parameter frame 'lawlist-buffer-list
-     (append 
-       (frame-parameter frame 'buffer-list)
-       (frame-parameter frame 'buried-buffer-list)
-      '()) ) )
-
-;; https://github.com/alpaker/Frame-Bufs
-(defun lawlist-reset-all-frames ()
-  "Reset the associated-buffer list of all frames.
-  Call `lawlist-reset-frame' on all live frames."
-  (interactive)
-  (dolist (frame (frame-list))
-    (lawlist-reset-frame frame)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;; IF BUILT --with-ns, THEN ALSO USE ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defalias 'ns-find-file 'lawlist-ns-find-file)
