@@ -1,9 +1,10 @@
 ;; init-tabbar.el
 
 ;; Authored (in part) by lawlist -- modifying various functions found at the following
-;; links, and with the indirect help of many skilled programmers at the forums of
-;; http://www.stackoverflow.com, and indirectly with the assistance of several skilled
-;; programers who responded to a few bug reports lawlist submitted to the Emacs team.
+;; links; and, with the indirect help from many skilled programmers at the forums of
+;; http://www.stackoverflow.com; and, indirectly with the assistance of several skilled
+;; programmers who responded to a few bug reports lawlist submitted to the Emacs team:
+
 ;; http://www.emacswiki.org/emacs/TabBarMode
 ;; https://github.com/bamanzi/dotemacs-full/blob/master/init.d/25-tabbar.el
 ;; https://gist.github.com/Johniel/4324127
@@ -51,21 +52,21 @@
 
 (defvar system-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `SYSTEM`.")
-(setq system-buffer-regexp '("*scratch*" "*bbdb*" "*bar*" ".scratch"))
+(setq system-buffer-regexp '("\\.bbdb" "\\.scratch"))
 
 (defvar main-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `MAIN`.")
 (setq main-buffer-regexp
-  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "\\*NO-FILE-main-buffer-regexp\\*"))
+  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
-(setq org-buffer-regexp '("\\*TODO\\*" "\\.todo" "\\.done" "\\*DONE\\*" "\\*Org Agenda\\*" "\\.org_archive" "\\.org"))
+(setq org-buffer-regexp '("\\.todo" "\\.done" "\\*Org Agenda\\*" "\\.org"))
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will display in the current frame without other windows.")
 (setq special-buffer-regexp
-  '("\\*NO-FILE-special-buffer-regexp\\*" "\\*FILE-special-buffer-regexp\\*"))
+  '("\\*hello-world\\*"))
 
 (defvar buffer-filename nil)
 
