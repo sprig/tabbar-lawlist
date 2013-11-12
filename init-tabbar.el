@@ -56,8 +56,7 @@
 
 (defvar main-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame `MAIN`.")
-(setq main-buffer-regexp
-  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
+(setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
 
 (defvar org-buffer-regexp nil
   "Regexp of file / buffer names displayed in frame  `ORG`.")
@@ -65,8 +64,7 @@
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will display in the current frame without other windows.")
-(setq special-buffer-regexp
-  '("\\*hello-world\\*"))
+(setq special-buffer-regexp '("\\*hello-world\\*"))
 
 (defvar buffer-filename nil)
 
