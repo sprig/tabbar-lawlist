@@ -46,20 +46,16 @@
 (defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
 
-(defvar wanderlust-buffer-regexp nil
-  "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
+(defvar wanderlust-buffer-regexp nil "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
 (setq wanderlust-buffer-regexp '("Folder" "Summary" "INBOX" "SENT" "JUNK" "TRASH" "DRAFTS" "\\*WL:Message\\*" "\\*draft\\*"))
 
-(defvar system-buffer-regexp nil
-  "Regexp of file / buffer names displayed in frame `SYSTEM`.")
+(defvar system-buffer-regexp nil "Regexp of file / buffer names displayed in frame `SYSTEM`.")
 (setq system-buffer-regexp '("\\.bbdb" "\\.scratch"))
 
-(defvar main-buffer-regexp nil
-  "Regexp of file / buffer names displayed in frame `MAIN`.")
+(defvar main-buffer-regexp nil "Regexp of file / buffer names displayed in frame `MAIN`.")
 (setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
 
-(defvar org-buffer-regexp nil
-  "Regexp of file / buffer names displayed in frame  `ORG`.")
+(defvar org-buffer-regexp nil "Regexp of file / buffer names displayed in frame  `ORG`.")
 (setq org-buffer-regexp '("\\.todo" "\\.done" "\\*Org Agenda\\*" "\\.org"))
 
 (defvar special-buffer-regexp nil
