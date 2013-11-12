@@ -62,20 +62,20 @@
   "Regexp of file / buffer names that will display in the current frame without other windows.")
 (setq special-buffer-regexp '("\\*hello-world\\*"))
 
-(defvar buffer-filename nil)
+(defvar lawlist-filename nil)
 
-(defun lawlist-find-file (&optional buffer-filename)
+(defun lawlist-find-file (&optional lawlist-filename)
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  (unless buffer-filename (setq buffer-filename
+  (unless lawlist-filename (setq lawlist-filename
     (cond
       ((eq system-type 'darwin)
         (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
       ((eq system-type 'windows-nt)
         (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))
-  (if buffer-filename
-    (display-buffer (find-file-noselect buffer-filename))))
+  (if lawlist-filename
+    (display-buffer (find-file-noselect lawlist-filename))))
 
 ;; The following is a `pinpoint` alternative to using the `display-buffer-alist`.
 ;; (display-buffer (get-buffer-create "foo.txt") '(lawlist-display-buffer-pop-up-frame))
@@ -172,7 +172,7 @@
           (not (regexp-match-p system-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p special-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p wanderlust-buffer-regexp (buffer-name buffer)))
-          buffer-filename )
+          lawlist-filename )
       (if (get-frame "MISCELLANEOUS")
           (switch-to-frame "MISCELLANEOUS")
         ;; If unnamed frame exists, then take control of it.
