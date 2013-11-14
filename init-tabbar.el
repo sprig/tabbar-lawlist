@@ -71,7 +71,8 @@
   (unless lawlist-filename (setq lawlist-filename
     (cond
       ((eq system-type 'darwin)
-        (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
+        ;; (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
+        (dired-read-file-name "/Users/HOME/.0.data/"))
       ((eq system-type 'windows-nt)
         (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))
   (if lawlist-filename
@@ -364,6 +365,8 @@
 
 (defun lawlist-kill-buffer ()
 (interactive)
+  (if (eq major-mode 'dired-mode)
+    (exit-recursive-edit))
   (setq current-buffer-name (buffer-name))
   (tabbar-backward)
   (setq previous-buffer-name (buffer-name))
