@@ -50,7 +50,7 @@
 (setq wanderlust-buffer-regexp '("Folder" "Summary" "INBOX" "SENT" "JUNK" "TRASH" "DRAFTS" "\\*WL:Message\\*" "\\*draft\\*"))
 
 (defvar system-buffer-regexp nil "Regexp of file / buffer names displayed in frame `SYSTEM`.")
-(setq system-buffer-regexp '("\\.bbdb" "\\.scratch"))
+(setq system-buffer-regexp '("\\.bbdb" "\\.scratch" "\\*Backtrace\\*"))
 
 (defvar main-buffer-regexp nil "Regexp of file / buffer names displayed in frame `MAIN`.")
 (setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
@@ -72,7 +72,7 @@
     (cond
       ((eq system-type 'darwin)
         ;; (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
-        (dired-read-file-name "/Users/HOME/.0.data/"))
+        (dired-read-file-name (if (equal (buffer-file-name) "/Users/HOME/.0.data/.0.emacs/.scratch") "/Users/HOME/.0.data")))
       ((eq system-type 'windows-nt)
         (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))
   (if lawlist-filename
@@ -338,7 +338,8 @@
   (interactive)
   (other-frame 1)
   (if (and 
-        (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        ;; (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        (not (memq (current-buffer) (lawlist-buffer-list (selected-frame))))
         (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
@@ -346,7 +347,8 @@
 (interactive)
   (other-frame -1)
   (if (and 
-        (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        ;; (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
+        (not (memq (current-buffer) (lawlist-buffer-list (selected-frame))))
         (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
@@ -365,8 +367,8 @@
 
 (defun lawlist-kill-buffer ()
 (interactive)
-  (if (eq major-mode 'dired-mode)
-    (exit-recursive-edit))
+  (if (> (recursion-depth) 0)
+    (throw 'exit nil))
   (setq current-buffer-name (buffer-name))
   (tabbar-backward)
   (setq previous-buffer-name (buffer-name))
