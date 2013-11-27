@@ -60,23 +60,21 @@
 
 (defvar special-buffer-regexp nil
   "Regexp of file / buffer names that will display in the current frame without other windows.")
-(setq special-buffer-regexp '("\\*hello-world\\*"))
-
-(defvar lawlist-filename nil)
+(setq special-buffer-regexp '("\\*Capture\\*"))
 
 (defun lawlist-find-file (&optional lawlist-filename)
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  (unless lawlist-filename (setq lawlist-filename
+  (display-buffer (find-file-noselect
+    (if lawlist-filename
+      lawlist-filename
     (cond
       ((eq system-type 'darwin)
-        ;; (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
-        (dired-read-file-name (if (equal (buffer-file-name) "/Users/HOME/.0.data/.0.emacs/.scratch") "/Users/HOME/.0.data")))
+        (ns-read-file-name "Select File:" "/Users/HOME/.0.data/" t nil nil))
+        ;; (read-file-name "Select File: " "~/" nil nil nil nil))
       ((eq system-type 'windows-nt)
-        (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))
-  (if lawlist-filename
-    (display-buffer (find-file-noselect lawlist-filename))))
+        (xp-read-file-name "Select File: " "y:/" nil nil nil nil)))))))
 
 ;; The following is a `pinpoint` alternative to using the `display-buffer-alist`.
 ;; (display-buffer (get-buffer-create "foo.txt") '(lawlist-display-buffer-pop-up-frame))
@@ -173,7 +171,7 @@
           (not (regexp-match-p system-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p special-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p wanderlust-buffer-regexp (buffer-name buffer)))
-          lawlist-filename )
+          (get-file-buffer (buffer-name buffer)))
       (if (get-frame "MISCELLANEOUS")
           (switch-to-frame "MISCELLANEOUS")
         ;; If unnamed frame exists, then take control of it.
@@ -192,7 +190,11 @@
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 6
-    ;; default display for no-file-visiting buffers
+    ;; default display for no-file-visiting buffers -- split-window-vertically
+    ;; display-buffer divides by two; we then take the height of the top window
+    ;; with focus and expand it -- leaving 10 lines for the calendar buffer,
+    ;; including the header and footer -- essentially 7 + 3
+    ;; (enlarge-window (- (window-height (next-window)) 10))
     (t nil) ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -278,7 +280,11 @@
   (lawlist-remove-buffer (current-buffer) (selected-frame))
   (dolist (win (get-buffer-window-list buf 'no-minibuf frame))
     (set-window-buffer win (other-buffer buf)))
-  (if (not (equal (car (lawlist-buffer-list (selected-frame))) nil))
+  ;; if the selected buffer is not within the lawlist-buffer-list; and,
+  ;; if the there is at least one buffer in the lawlist-buffer-list;
+  ;; then switch to the first buffer in the lawlist-buffer-list.
+  (if (and (equal (memq (current-buffer) (lawlist-buffer-list (selected-frame))) nil)
+        (not (equal (lawlist-buffer-list (selected-frame)) nil)))
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 ;; https://github.com/alpaker/Frame-Bufs
@@ -335,67 +341,66 @@
 (add-hook 'first-change-hook 'ztl-on-buffer-modification)
 
 (defun cycle-forward-frames-groups ()
-  (interactive)
+(interactive)
   (other-frame 1)
-  (if (and 
-        ;; (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
-        (not (memq (current-buffer) (lawlist-buffer-list (selected-frame))))
-        (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
+  ;; if the selected buffer is not within the lawlist-buffer-list; and,
+  ;; if the there is at least one buffer in the lawlist-buffer-list;
+  ;; then switch to the first buffer in the lawlist-buffer-list.
+  (if (and (equal (memq (current-buffer) (lawlist-buffer-list (selected-frame))) nil)
+        (not (equal (lawlist-buffer-list (selected-frame)) nil)))
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 (defun cycle-backward-frames-groups ()
 (interactive)
   (other-frame -1)
-  (if (and 
-        ;; (not (equal (buffer-name) (car (lawlist-buffer-list (selected-frame)))))
-        (not (memq (current-buffer) (lawlist-buffer-list (selected-frame))))
-        (not (equal (car (lawlist-buffer-list (selected-frame))) nil)))
+  ;; if the selected buffer is not within the lawlist-buffer-list; and,
+  ;; if the there is at least one buffer in the lawlist-buffer-list;
+  ;; then switch to the first buffer in the lawlist-buffer-list.
+  (if (and (equal (memq (current-buffer) (lawlist-buffer-list (selected-frame))) nil)
+        (not (equal (lawlist-buffer-list (selected-frame)) nil)))
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
-(defun lawlist-exit-draft ()
-  "Choices for directories and files."
-  (interactive)
-  (message "[k]ill or [s]ave draft?")
-  (let* (
-    (a (read-char-exclusive)) )
-    (cond
-      ((eq a ?k)
-      (with-current-buffer (get-buffer current-buffer-name) (wl-draft-kill)))
-      ((eq a ?s)
-      (with-current-buffer (get-buffer current-buffer-name) (wl-draft-save-and-exit)))
-     (t (error "You must select either wl-draft-kill or wl-draft-save-and-exit.")))))
-
 (defun lawlist-kill-buffer ()
+"NOTE:  The kill-buffer-hook within tabbar.el has been removed so tabbar-buffer-track-killed
+does not interfere with the default behavior which is switch to the previous buffer."
 (interactive)
   (if (> (recursion-depth) 0)
     (throw 'exit nil))
-  (setq current-buffer-name (buffer-name))
-  (tabbar-backward)
-  (setq previous-buffer-name (buffer-name))
-  (if (eq (with-current-buffer current-buffer-name major-mode) 'wl-draft-mode)
-    (progn
-      (tabbar-forward)
-      (lawlist-exit-draft)
-      (switch-to-buffer previous-buffer-name)
-      (if (get-buffer current-buffer-name)
-        (kill-buffer current-buffer-name)))
-    (kill-buffer current-buffer-name))
-  (if (get-buffer-window "*Calendar*" (selected-frame))
-    (progn
-      (kill-buffer "*Calendar*")
-      (delete-other-windows) ))
-  (if (equal current-buffer-name previous-buffer-name)
-    (condition-case e
-      (delete-frame)
-        (error
-          (if (string= "Attempt to delete the sole visible or iconified frame" 
-              (cadr e))
-            (bury-buffer)))))
-  (if (equal (buffer-name) "*scratch*")
-    (progn
-      (find-file (concat root.d ".scratch"))
-      (kill-buffer "*scratch*")))
-  (tabbar-display-update))
+  (let* ((to-be-killed (buffer-name)))
+    (if (eq (with-current-buffer to-be-killed major-mode) 'wl-draft-mode)
+      (progn 
+        (message "[k]ill or [s]ave draft?")
+        (let* (
+          (a (read-char-exclusive)) )
+          (cond
+            ((eq a ?k)
+              (wl-draft-delete to-be-killed))
+            ((eq a ?s)
+              (wl-draft-save-and-exit))
+           (t (error "You must select either wl-draft-kill or wl-draft-save-and-exit.")))))
+      (kill-buffer to-be-killed))
+      ;; if the selected buffer (after the kill) is not within the lawlist-buffer-list; and,
+      ;; if the there is at least one buffer in the lawlist-buffer-list;
+      ;; then switch to the first buffer in the lawlist-buffer-list.
+      (if (and (equal (memq (current-buffer) (lawlist-buffer-list (selected-frame))) nil)
+            (not (equal (lawlist-buffer-list (selected-frame)) nil)))
+        (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame))))))
+      (if (get-buffer-window "*Calendar*" (selected-frame))
+        (progn
+          (kill-buffer "*Calendar*")
+          (delete-other-windows) ))
+      (if (equal (lawlist-buffer-list (selected-frame)) nil)
+        (condition-case e
+          (delete-frame)
+            (error
+              (if (string= "Attempt to delete the sole visible or iconified frame" 
+                  (cadr e))
+                (bury-buffer)))))
+      (if (equal (buffer-name) "*scratch*")
+        (progn
+          (find-file (concat root.d ".scratch"))
+          (kill-buffer "*scratch*")))
+    (tabbar-display-update)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
