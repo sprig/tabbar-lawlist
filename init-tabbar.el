@@ -190,11 +190,6 @@
       (set-window-buffer (selected-window) (buffer-name buffer))
       (set-buffer (buffer-name buffer)) )
     ;; condition # 6
-    ;; default display for no-file-visiting buffers -- split-window-vertically
-    ;; display-buffer divides by two; we then take the height of the top window
-    ;; with focus and expand it -- leaving 10 lines for the calendar buffer,
-    ;; including the header and footer -- essentially 7 + 3
-    ;; (enlarge-window (- (window-height (next-window)) 10))
     (t nil) ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
