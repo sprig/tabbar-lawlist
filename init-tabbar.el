@@ -171,7 +171,7 @@
           (not (regexp-match-p system-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p special-buffer-regexp (buffer-name buffer)))
           (not (regexp-match-p wanderlust-buffer-regexp (buffer-name buffer)))
-          (get-file-buffer (buffer-name buffer)))
+          (buffer-file-name (get-buffer (buffer-name buffer))))
       (if (get-frame "MISCELLANEOUS")
           (switch-to-frame "MISCELLANEOUS")
         ;; If unnamed frame exists, then take control of it.
@@ -195,11 +195,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; https://github.com/kentaro/auto-save-buffers-enhanced
+;; `regexp-match-p` function modified by @sds on stackoverflow
+;; http://stackoverflow.com/questions/20343048/distinguishing-files-with-extensions-from-hidden-files-and-no-extensions
 (defun regexp-match-p (regexps string)
-  (catch 'matched
-    (dolist (regexp regexps)
-      (if (string-match regexp string)
-        (throw 'matched t)))))
+  (and string
+       (catch 'matched
+         (let ((inhibit-changing-match-data t)) ; small optimization
+           (dolist (regexp regexps)
+             (when (string-match regexp string)
+               (throw 'matched t)))))))
 
 ;; http://www.emacswiki.org/emacs/frame-fns.el
 (defun get-frame-name (&optional frame)
