@@ -28,8 +28,8 @@
   (setq tabbar-cycle-scope 'tabs)
   (setq tabbar-buffer-groups-function (lambda () (list
     (cond
-      ((memq (current-buffer) (lawlist-buffer-list (selected-frame))) "lawlist")
-      (t "unassigned") )))) ))
+      ((memq (current-buffer) (lawlist-buffer-list (selected-frame))) "A")
+      (t "N") )))) ))
 
 ;;;;;;;;;;;;;;;;; DISPLAY-BUFFER-ALIST and DISPLAY-BUFFER ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -46,27 +46,31 @@
 (defvar regexp-frame-names "^\\(?:MAIN\\|SYSTEM\\|ORG\\|MISCELLANEOUS\\|WANDERLUST\\)$"
     "Regexp matching frames with specific names.")
 
-(defvar wanderlust-buffer-regexp nil "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
-(setq wanderlust-buffer-regexp '("Folder" "Summary" "INBOX" "SENT" "JUNK" "TRASH" "DRAFTS" "\\*WL:Message\\*" "\\*draft\\*"))
+(defvar wanderlust-buffer-regexp
+  '("Folder" "Summary" "INBOX" "SENT" "JUNK" "TRASH" "DRAFTS" "\\*WL:Message\\*" "\\*draft\\*")
+  "Regexp of file / buffer names displayed in frame `WANDERLUST`.")
 
-(defvar system-buffer-regexp nil "Regexp of file / buffer names displayed in frame `SYSTEM`.")
-(setq system-buffer-regexp '("\\.bbdb" "\\.scratch" "\\*Backtrace\\*"))
+(defvar system-buffer-regexp
+  '("\\.bbdb" "\\.scratch")
+  "Regexp of file / buffer names displayed in frame `SYSTEM`.")
 
-(defvar main-buffer-regexp nil "Regexp of file / buffer names displayed in frame `MAIN`.")
-(setq main-buffer-regexp '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs"))
+(defvar main-buffer-regexp
+  '("\\.txt" "\\.tex" "\\.el" "\\.yasnippet" "user_prefs")
+  "Regexp of file / buffer names displayed in frame `MAIN`.")
 
-(defvar org-buffer-regexp nil "Regexp of file / buffer names displayed in frame  `ORG`.")
-(setq org-buffer-regexp '("\\.todo" "\\.done" "\\*Org Agenda\\*" "\\.org"))
+(defvar org-buffer-regexp
+  '("^\\.todo" "\\.done" "\\*Org Agenda\\*" "\\.org")
+  "Regexp of file / buffer names displayed in frame  `ORG`.")
 
-(defvar special-buffer-regexp nil
-  "Regexp of file / buffer names that will display in the current frame without other windows.")
-(setq special-buffer-regexp '("\\*Capture\\*"))
+(defvar special-buffer-regexp
+  '("\\*hello-world\\*")
+  "Regexp of file / buffer names that will display in the current frame.")
 
 (defun lawlist-find-file (&optional lawlist-filename)
   "With assistance from the display-buffer-alist, locate or create a specific frame,
   and then open the file."
   (interactive)
-  (display-buffer (find-file-noselect
+  (lawlist-display-buffer (find-file-noselect
     (if lawlist-filename
       lawlist-filename
     (cond
@@ -78,7 +82,7 @@
 
 ;; The following is a `pinpoint` alternative to using the `display-buffer-alist`.
 ;; (display-buffer (get-buffer-create "foo.txt") '(lawlist-display-buffer-pop-up-frame))
-(setq display-buffer-alist '((".*" . (lawlist-display-buffer-pop-up-frame))))
+(setq lawlist-display-buffer-alist '((".*" . (lawlist-display-buffer-pop-up-frame))))
 
 (defun lawlist-display-buffer-pop-up-frame (buffer alist)
   (cond
@@ -99,8 +103,8 @@
             (lawlist-make-frame)
             (set-frame-name "WANDERLUST"))) )
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 1 -- either file-visiting or no-file buffers
     ((regexp-match-p org-buffer-regexp (buffer-name buffer))
       (if (get-frame "ORG")
@@ -118,8 +122,8 @@
             (lawlist-make-frame)
             (set-frame-name "ORG"))) )
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 2 -- either file-visiting or no-file buffers
     ((regexp-match-p main-buffer-regexp (buffer-name buffer))
       (if (get-frame "MAIN")
@@ -137,8 +141,8 @@
             (lawlist-make-frame)
             (set-frame-name "MAIN"))) )
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 3 -- either file-visiting or no-file buffers
     ((regexp-match-p system-buffer-regexp (buffer-name buffer))
       (if (get-frame "SYSTEM")
@@ -156,14 +160,14 @@
             (lawlist-make-frame)
             (set-frame-name "SYSTEM"))) )
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 4
-    ;; display buffer in the existing frame, without other windows
+    ;; display buffer in the existing frame
     ((regexp-match-p special-buffer-regexp (buffer-name buffer))
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 5
     ;; file-visiting buffers that do NOT match any pre-defined regexp
     ((and (not (regexp-match-p org-buffer-regexp (buffer-name buffer)))
@@ -187,10 +191,61 @@
             (lawlist-make-frame)
             (set-frame-name "MISCELLANEOUS"))))
       (lawlist-add-buffer (get-buffer buffer) (selected-frame))
-      (set-window-buffer (selected-window) (buffer-name buffer))
-      (set-buffer (buffer-name buffer)) )
+      (set-window-buffer (get-largest-window) (buffer-name buffer))
+      (select-window (get-buffer-window (buffer-name buffer))) )
     ;; condition # 6
     (t nil) ))
+
+(defun lawlist-display-buffer (buffer-or-name &optional action frame)
+  (interactive (list (read-buffer "Display buffer: " (other-buffer))
+         (if current-prefix-arg t)))
+  (let ((buffer (if (bufferp buffer-or-name)
+        buffer-or-name
+      (get-buffer buffer-or-name)))
+  (split-window-keep-point t)
+  (inhibit-same-window (and action (not (listp action)))))
+    (unless (listp action) (setq action nil))
+    (if display-buffer-function
+  (funcall display-buffer-function buffer inhibit-same-window)
+      (let* ((user-action
+        (display-buffer-assq-regexp
+         (buffer-name buffer) lawlist-display-buffer-alist action))
+             (special-action (display-buffer--special-action buffer))
+       (extra-action
+        (cons nil (append (if inhibit-same-window
+            '((inhibit-same-window . t)))
+        (if frame
+            `((reusable-frames . ,frame))))))
+       (actions (list display-buffer-overriding-action
+          user-action special-action action extra-action
+          display-buffer-base-action
+          display-buffer-fallback-action))
+       (functions (apply 'append
+             (mapcar (lambda (x)
+           (setq x (car x))
+           (if (functionp x) (list x) x))
+               actions)))
+       (alist (apply 'append (mapcar 'cdr actions)))
+       window)
+  (unless (buffer-live-p buffer)
+    (error "Invalid buffer"))
+  (while (and functions (not window))
+    (setq window (funcall (car functions) buffer alist)
+      functions (cdr functions)))
+  window))))
+
+(defun lawlist-display-buffer-below-selected (buffer alist)
+  (let (window)
+    (or (and (not (frame-parameter nil 'unsplittable))
+       (let ((split-height-threshold 0)
+       split-width-threshold)
+         (setq window (window--try-to-split-window (selected-window) alist)))
+       (window--display-buffer
+        buffer window 'window alist display-buffer-mark-dedicated))
+  (and (setq window (window-in-direction 'below))
+       (not (window-dedicated-p window))
+       (window--display-buffer
+        buffer window 'reuse alist display-buffer-mark-dedicated)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FRAME UTILITIES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
