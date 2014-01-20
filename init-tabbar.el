@@ -261,7 +261,7 @@
                (throw 'matched t)))))))
 
 ;; http://www.emacswiki.org/emacs/frame-fns.el
-;; author:  Drew Adams
+;; Author:  Drew Adams
 (defun get-frame-name (&optional frame)
   "Return the string that names FRAME (a frame).  Default is selected frame."
   (unless frame (setq frame (selected-frame)))
@@ -270,7 +270,7 @@
     (error "Function `get-frame-name': Argument not a frame: `%s'" frame)))
 
 ;; http://www.emacswiki.org/emacs/frame-fns.el
-;; author:  Drew Adams
+;; Author:  Drew Adams
 (defun get-frame (frame)
   "Return a frame, if any, named FRAME (a frame or a string).
   If none, return nil.
