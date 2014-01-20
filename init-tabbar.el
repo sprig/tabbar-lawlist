@@ -298,7 +298,7 @@
             (setq frames (cdr frames))))))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun lawlist-buffer-list (frame)
   ;; Remove dead buffers.
   (set-frame-parameter frame 'lawlist-buffer-list
@@ -308,14 +308,14 @@
   (frame-parameter frame 'lawlist-buffer-list) )
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun lawlist-remove-buffer (buf frame)
   "Remove BUF from FRAME's associated-buffer list."
   (set-frame-parameter frame 'lawlist-buffer-list
     (delq buf (frame-parameter frame 'lawlist-buffer-list))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun lawlist-add-buffer (buf frame)
   "Add BUF to FRAME's associated-buffer list if not already present."
   (unless (bufferp buf)
@@ -327,13 +327,13 @@
     (tabbar-display-update)))
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun associate-current-buffer ()
 (interactive)
   (lawlist-add-buffer (get-buffer (current-buffer)) (selected-frame)))
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun disassociate-current-buffer (&optional buf frame)
 (interactive)
   (unless buf (setq buf (current-buffer)))
@@ -349,7 +349,7 @@
     (switch-to-buffer (format "%s" (car (lawlist-buffer-list (selected-frame)))))))
 
 ;; https://github.com/alpaker/Frame-Bufs
-;; NOTES:  Al Parker wrote the Frame-Bufs, and @lawlist has modified a few functions.
+;; Author:  Al Parker wrote Frame-Bufs, and @lawlist has modified a few functions.
 (defun lawlist-buffer-list-reset ()
   "Wipe the entire slate clean for the selected frame."
 (interactive)
